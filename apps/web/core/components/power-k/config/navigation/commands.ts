@@ -71,6 +71,13 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       ctx.params.workspaceSlug?.toString(),
       ctx.params.projectId?.toString()
     );
+  const hasProjectAdminLevelPermissions = (ctx: TPowerKContext) =>
+    allowPermissions(
+      [EUserProjectRoles.ADMIN],
+      EUserPermissionsLevel.PROJECT,
+      ctx.params.workspaceSlug?.toString(),
+      ctx.params.projectId?.toString()
+    );
   const baseWorkspaceConditions = (ctx: TPowerKContext) => Boolean(ctx.params.workspaceSlug?.toString());
   const baseProjectConditions = (ctx: TPowerKContext) =>
     Boolean(ctx.params.workspaceSlug?.toString() && ctx.params.projectId?.toString());
@@ -499,8 +506,8 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
           settingsHref,
         ]);
       },
-      isEnabled: (ctx) => baseProjectConditions(ctx),
-      isVisible: (ctx) => baseProjectConditions(ctx),
+      isEnabled: (ctx) => baseProjectConditions(ctx) && hasProjectAdminLevelPermissions(ctx),
+      isVisible: (ctx) => baseProjectConditions(ctx) && hasProjectAdminLevelPermissions(ctx),
       closeOnSelect: true,
     },
     nav_project_settings: {
@@ -517,8 +524,8 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
           "projects",
           ctx.params.projectId?.toString(),
         ]),
-      isEnabled: (ctx) => baseProjectConditions(ctx),
-      isVisible: (ctx) => baseProjectConditions(ctx),
+      isEnabled: (ctx) => baseProjectConditions(ctx) && hasProjectAdminLevelPermissions(ctx),
+      isVisible: (ctx) => baseProjectConditions(ctx) && hasProjectAdminLevelPermissions(ctx),
       closeOnSelect: true,
     },
   };

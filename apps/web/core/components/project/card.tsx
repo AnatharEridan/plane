@@ -128,7 +128,9 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
       action: () => router.push(`/${workspaceSlug}/settings/projects/${project.id}`),
       title: "Settings",
       icon: Settings,
-      shouldRender: !isArchived && (hasAdminRole || hasMemberRole),
+      shouldRender:
+        !isArchived &&
+        allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug?.toString(), project.id),
     },
     {
       key: "join",
@@ -335,7 +337,12 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
             ) : (
               <>
                 {isMemberOfProject &&
-                  (hasAdminRole || hasMemberRole ? (
+                  (allowPermissions(
+                    [EUserPermissions.ADMIN],
+                    EUserPermissionsLevel.PROJECT,
+                    workspaceSlug?.toString(),
+                    project.id
+                  ) ? (
                     <Link
                       className="flex items-center justify-center rounded-sm p-1 text-placeholder hover:bg-layer-1 hover:text-secondary"
                       onClick={(e) => {

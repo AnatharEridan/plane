@@ -7,19 +7,33 @@
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 import { Outlet } from "react-router";
+// plane imports
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // components
+import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { getProjectActivePath } from "@/components/settings/helper";
 import { SettingsMobileNav } from "@/components/settings/mobile/nav";
 // layouts
 import { ProjectAuthWrapper } from "@/layouts/auth-layout/project-wrapper";
+// hooks
+import { useUserPermissions } from "@/hooks/store/user";
 // types
 import type { Route } from "./+types/layout";
 import { ProjectSettingsSidebarRoot } from "@/components/settings/project/sidebar";
 
-function ProjectDetailSettingsLayout({ params }: Route.ComponentProps) {
+const ProjectDetailSettingsLayout = observer(function ProjectDetailSettingsLayout({ params }: Route.ComponentProps) {
   const { workspaceSlug, projectId } = params;
   // router
   const pathname = usePathname();
+  // store hooks
+  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
+  // derived values
+  const isProjectAdmin = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug,
+    projectId
+  );
 
   return (
     <>
@@ -33,12 +47,16 @@ function ProjectDetailSettingsLayout({ params }: Route.ComponentProps) {
             <ProjectSettingsSidebarRoot projectId={projectId} />
           </div>
           <ProjectAuthWrapper workspaceSlug={workspaceSlug} projectId={projectId}>
-            <Outlet />
+            {workspaceUserInfo && !isProjectAdmin ? (
+              <NotAuthorizedView section="settings" isProjectView className="h-auto" />
+            ) : (
+              <Outlet />
+            )}
           </ProjectAuthWrapper>
         </div>
       </div>
     </>
   );
-}
+});
 
-export default observer(ProjectDetailSettingsLayout);
+export default ProjectDetailSettingsLayout;

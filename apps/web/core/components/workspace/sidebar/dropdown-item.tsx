@@ -91,7 +91,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
         {workspace.id === activeWorkspace?.id && (
           <>
             <div className="mt-2 mb-1 flex gap-2">
-              {[EUserPermissions.ADMIN, EUserPermissions.MEMBER].includes(workspace?.role) && (
+              {[EUserPermissions.ADMIN].includes(workspace?.role) && (
                 <Link
                   href={`/${workspace.slug}/settings`}
                   onClick={(e) => {

@@ -91,16 +91,18 @@ export function ProjectActionsMenu({
           </div>
         </CustomMenu.MenuItem>
       )}
-      <CustomMenu.MenuItem
-        onClick={() => {
-          navigate(`/${workspaceSlug}/settings/projects/${project?.id}`);
-        }}
-      >
-        <div className="flex cursor-pointer items-center justify-start gap-2">
-          <Settings className="h-3.5 w-3.5 stroke-[1.5]" />
-          <span>{t("settings")}</span>
-        </div>
-      </CustomMenu.MenuItem>
+      {isAdmin && (
+        <CustomMenu.MenuItem
+          onClick={() => {
+            navigate(`/${workspaceSlug}/settings/projects/${project?.id}`);
+          }}
+        >
+          <div className="flex cursor-pointer items-center justify-start gap-2">
+            <Settings className="h-3.5 w-3.5 stroke-[1.5]" />
+            <span>{t("settings")}</span>
+          </div>
+        </CustomMenu.MenuItem>
+      )}
       {/* Leave project */}
       {!isAuthorized && (
         <CustomMenu.MenuItem

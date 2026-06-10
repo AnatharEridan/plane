@@ -27,14 +27,14 @@ export const PROJECT_SETTINGS: Record<TProjectSettingsTabs, TProjectSettingsItem
     key: "general",
     i18n_label: "common.general",
     href: ``,
-    access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
+    access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/`,
   },
   members: {
     key: "members",
     i18n_label: "common.members",
     href: `/members`,
-    access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER, EUserProjectRoles.GUEST],
+    access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/members/`,
   },
   features_cycles: {
@@ -76,14 +76,14 @@ export const PROJECT_SETTINGS: Record<TProjectSettingsTabs, TProjectSettingsItem
     key: "states",
     i18n_label: "common.states",
     href: `/states`,
-    access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER],
+    access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/states/`,
   },
   labels: {
     key: "labels",
     i18n_label: "common.labels",
     href: `/labels`,
-    access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER],
+    access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/labels/`,
   },
   estimates: {

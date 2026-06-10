@@ -29,12 +29,12 @@ class WorkSpaceBasePermission(BasePermission):
         if request.method in SAFE_METHODS:
             return True
 
-        # allow only admins and owners to update the workspace settings
+        # allow only admins to update the workspace settings
         if request.method in ["PUT", "PATCH"]:
             return WorkspaceMember.objects.filter(
                 member=request.user,
                 workspace__slug=view.workspace_slug,
-                role__in=[Admin, Member],
+                role=Admin,
                 is_active=True,
             ).exists()
 

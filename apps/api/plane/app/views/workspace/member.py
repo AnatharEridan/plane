@@ -48,7 +48,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
 
         # Get all active workspace members
         workspace_members = self.get_queryset()
-        if workspace_member.role > 5:
+        if workspace_member.role == ROLE.ADMIN.value:
             serializer = WorkspaceMemberAdminSerializer(workspace_members, fields=("id", "member", "role"), many=True)
         else:
             serializer = WorkSpaceMemberSerializer(workspace_members, fields=("id", "member", "role"), many=True)
@@ -67,7 +67,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if workspace_member.role > ROLE.GUEST.value:
+        if workspace_member.role == ROLE.ADMIN.value:
             serializer = WorkspaceMemberAdminSerializer(member, fields=("id", "member", "role"))
         else:
             serializer = WorkSpaceMemberSerializer(member, fields=("id", "member", "role"))

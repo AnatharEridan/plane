@@ -18,9 +18,11 @@ import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
+import type { Route } from "./+types/page";
 import { LabelsProjectSettingsHeader } from "./header";
 
-function LabelsSettingsPage() {
+function LabelsSettingsPage({ params }: Route.ComponentProps) {
+  const { workspaceSlug, projectId } = params;
   // store hooks
   const { currentProjectDetails } = useProject();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
@@ -31,8 +33,10 @@ function LabelsSettingsPage() {
 
   // derived values
   const canPerformProjectMemberActions = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug,
+    projectId
   );
 
   // Enable Auto Scroll for Labels list

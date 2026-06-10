@@ -28,7 +28,7 @@ function ExportsPage() {
 
   // derived values
   const canPerformWorkspaceMemberActions = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    [EUserPermissions.ADMIN],
     EUserPermissionsLevel.WORKSPACE
   );
   const pageTitle = currentWorkspace?.name
