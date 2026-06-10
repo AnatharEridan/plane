@@ -51,6 +51,8 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const [isJoiningProject, setIsJoiningProject] = useState(false);
   // store hooks
   const { fetchUserProjectInfo, allowPermissions, getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getProjectDetailsStatus = (error: any) => error?.status ?? error?.response?.status;
   const { fetchProjectDetails } = useProject();
   const { joinProject } = useUserPermissions();
   const { fetchAllCycles } = useCycle();
@@ -65,12 +67,6 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const { fetchProjectLabels } = useLabel();
   const { getProjectEstimates } = useProjectEstimates();
   // derived values
-  const hasPermissionToCurrentProject = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-    EUserPermissionsLevel.PROJECT,
-    workspaceSlug,
-    projectId
-  );
   const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
   // Initialize module timeline chart
@@ -143,13 +139,15 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   };
 
   const isProjectLoading = (isParentLoading || isProjectDetailsLoading) && !projectDetailsError;
+  const projectDetailsStatus = getProjectDetailsStatus(projectDetailsError);
 
   if (isProjectLoading) return null;
 
-  if (!isProjectLoading && hasPermissionToCurrentProject === false) {
+  // API is the source of truth for project access (handles non-members seeing all projects in the sidebar).
+  if (projectDetailsError) {
     return (
       <ProjectAccessRestriction
-        errorStatusCode={projectDetailsError?.status}
+        errorStatusCode={projectDetailsStatus}
         isWorkspaceAdmin={isWorkspaceAdmin}
         handleJoinProject={handleJoinProject}
         isJoinButtonDisabled={isJoiningProject}
