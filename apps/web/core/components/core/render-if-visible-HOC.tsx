@@ -51,7 +51,7 @@ function RenderIfVisible(props: Props) {
       const observer = new IntersectionObserver(
         (entries) => {
           //DO no remove comments for future
-          if (typeof window !== undefined && window.requestIdleCallback && useIdletime) {
+          if (typeof window !== "undefined" && window.requestIdleCallback && useIdletime) {
             window.requestIdleCallback(() => setShouldVisible(entries[entries.length - 1].isIntersecting), {
               timeout: 300,
             });
@@ -77,7 +77,13 @@ function RenderIfVisible(props: Props) {
   //Set height after render
   useEffect(() => {
     if (intersectionRef.current && isVisible && shouldRecordHeights) {
-      window.requestIdleCallback(() => {
+      const scheduleIdle =
+        window.requestIdleCallback ??
+        function (cb: IdleRequestCallback) {
+          return setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 }), 1);
+        };
+
+      scheduleIdle(() => {
         if (intersectionRef.current) placeholderHeight.current = `${intersectionRef.current.offsetHeight}px`;
       });
     }
