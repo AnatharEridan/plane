@@ -27,6 +27,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
+from plane.app.permissions.base import ROLE
 from plane.app.views.base import BaseAPIView
 from plane.db.models import (
     Workspace,
@@ -40,6 +41,18 @@ from plane.db.models import (
     ProjectPage,
     WorkspaceMember,
 )
+
+
+def project_search_visibility_filter(user, slug):
+    """Workspace guests only see joined and public projects; members and admins see all."""
+    if WorkspaceMember.objects.filter(
+        member=user,
+        workspace__slug=slug,
+        is_active=True,
+        role=ROLE.GUEST.value,
+    ).exists():
+        return Q(project_projectmember__member=user, project_projectmember__is_active=True) | Q(network=2)
+    return Q()
 
 
 class GlobalSearchEndpoint(BaseAPIView):
@@ -372,7 +385,7 @@ class SearchEndpoint(BaseAPIView):
                     projects = (
                         Project.objects.filter(
                             q,
-                            Q(project_projectmember__member=self.request.user) | Q(network=2),
+                            project_search_visibility_filter(self.request.user, slug),
                             workspace__slug=slug,
                         )
                         .order_by("-created_at")
@@ -577,7 +590,7 @@ class SearchEndpoint(BaseAPIView):
                     projects = (
                         Project.objects.filter(
                             q,
-                            Q(project_projectmember__member=self.request.user) | Q(network=2),
+                            project_search_visibility_filter(self.request.user, slug),
                             workspace__slug=slug,
                         )
                         .order_by("-created_at")

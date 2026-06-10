@@ -11,6 +11,7 @@ import { ProjectIcon } from "@plane/propel/icons";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { CustomSearchSelect } from "@plane/ui";
 // hooks
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -32,8 +33,13 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   // router
   const router = useAppRouter();
   // store hooks
-  const { joinedProjectIds, getPartialProjectById } = useProject();
+  const { joinedProjectIds, allWorkspaceProjectIds, getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
+  const canSeeAllWorkspaceProjects = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE
+  );
+  const switcherProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjectIds;
 
   // Get current project details
   const currentProjectDetails = getPartialProjectById(projectId);
@@ -64,7 +70,7 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   // Memoize switcher options to prevent recalculation on every render
   const switcherOptions = useMemo<ICustomSearchSelectOption[]>(
     () =>
-      joinedProjectIds
+      switcherProjectIds
         .map((id): ICustomSearchSelectOption | null => {
           const project = getPartialProjectById(id);
           if (!project) return null;
@@ -83,7 +89,7 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
           };
         })
         .filter((option): option is ICustomSearchSelectOption => option !== null),
-    [joinedProjectIds, getPartialProjectById]
+    [switcherProjectIds, getPartialProjectById]
   );
 
   // Memoize onChange handler

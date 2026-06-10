@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { ProjectIcon } from "@plane/propel/icons";
 // plane imports
@@ -13,6 +14,7 @@ import { BreadcrumbNavigationSearchDropdown, Breadcrumbs } from "@plane/ui";
 import { SwitcherLabel } from "@/components/common/switcher-label";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
+import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import type { TProject } from "@/plane-web/types";
 
@@ -27,7 +29,13 @@ export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TPro
   // router
   const router = useAppRouter();
   // store hooks
-  const { joinedProjectIds, getPartialProjectById } = useProject();
+  const { joinedProjectIds, allWorkspaceProjectIds, getPartialProjectById } = useProject();
+  const { allowPermissions } = useUserPermissions();
+  const canSeeAllWorkspaceProjects = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE
+  );
+  const switcherProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjectIds;
   const currentProjectDetails = getPartialProjectById(projectId);
 
   // store hooks
@@ -35,7 +43,7 @@ export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TPro
   if (!currentProjectDetails) return null;
 
   // derived values
-  const switcherOptions = joinedProjectIds
+  const switcherOptions = switcherProjectIds
     .map((projectId) => {
       const project = getPartialProjectById(projectId);
       return {

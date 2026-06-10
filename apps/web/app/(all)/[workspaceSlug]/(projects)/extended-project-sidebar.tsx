@@ -36,8 +36,14 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   // store hooks
   const { t } = useTranslation();
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
-  const { getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
+  const { getPartialProjectById, joinedProjectIds: joinedProjects, allWorkspaceProjectIds, updateProjectView } =
+    useProject();
   const { allowPermissions } = useUserPermissions();
+  const canSeeAllWorkspaceProjects = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE
+  );
+  const sidebarProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjects;
 
   const handleOnProjectDrop = (
     sourceId: string | undefined,
@@ -70,7 +76,7 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   };
 
   // filter projects based on search query
-  const filteredProjects = joinedProjects.filter((projectId) => {
+  const filteredProjects = sidebarProjectIds.filter((projectId) => {
     const project = getPartialProjectById(projectId);
     if (!project) return false;
     return project.name.toLowerCase().includes(searchQuery.toLowerCase()) || project.identifier.includes(searchQuery);

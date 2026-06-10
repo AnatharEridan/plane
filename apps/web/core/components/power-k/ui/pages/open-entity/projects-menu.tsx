@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // plane types
 import type { IPartialProject } from "@plane/types";
 import { Spinner } from "@plane/ui";
@@ -12,6 +13,7 @@ import { Spinner } from "@plane/ui";
 import { PowerKProjectsMenu } from "@/components/power-k/menus/projects";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
+import { useUserPermissions } from "@/hooks/store/user";
 
 type Props = {
   handleSelect: (project: IPartialProject) => void;
@@ -20,10 +22,16 @@ type Props = {
 export const PowerKOpenProjectMenu = observer(function PowerKOpenProjectMenu(props: Props) {
   const { handleSelect } = props;
   // store hooks
-  const { loader, joinedProjectIds, getPartialProjectById } = useProject();
+  const { loader, joinedProjectIds, allWorkspaceProjectIds, getPartialProjectById } = useProject();
+  const { allowPermissions } = useUserPermissions();
+  const canSeeAllWorkspaceProjects = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE
+  );
+  const visibleProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjectIds;
   // derived values
-  const projectsList = joinedProjectIds
-    ? joinedProjectIds.map((id) => getPartialProjectById(id)).filter((project) => project !== undefined)
+  const projectsList = visibleProjectIds
+    ? visibleProjectIds.map((id) => getPartialProjectById(id)).filter((project) => project !== undefined)
     : [];
 
   if (loader === "init-loader") return <Spinner />;

@@ -48,7 +48,13 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const { preferences: projectPreferences } = useProjectNavigationPreferences();
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
 
-  const { loader, getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
+  const {
+    loader,
+    getPartialProjectById,
+    joinedProjectIds: joinedProjects,
+    allWorkspaceProjectIds,
+    updateProjectView,
+  } = useProject();
   // router params
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -58,15 +64,16 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.WORKSPACE
   );
+  const sidebarProjectIds = isAuthorizedUser ? allWorkspaceProjectIds : joinedProjects;
 
   // Compute limited projects for main sidebar
   const displayedProjects = projectPreferences.showLimitedProjects
-    ? joinedProjects.slice(0, projectPreferences.limitedProjectsCount)
-    : joinedProjects;
+    ? sidebarProjectIds.slice(0, projectPreferences.limitedProjectsCount)
+    : sidebarProjectIds;
 
   // Check if there are more projects to show
   const hasMoreProjects =
-    projectPreferences.showLimitedProjects && joinedProjects.length > projectPreferences.limitedProjectsCount;
+    projectPreferences.showLimitedProjects && sidebarProjectIds.length > projectPreferences.limitedProjectsCount;
 
   const handleCopyText = (projectId: string) => {
     copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
@@ -274,7 +281,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
           </Disclosure>
         </>
 
-        {isAuthorizedUser && joinedProjects?.length === 0 && (
+        {isAuthorizedUser && sidebarProjectIds?.length === 0 && (
           <button
             type="button"
             data-ph-element={PROJECT_TRACKER_ELEMENTS.SIDEBAR_CREATE_PROJECT_BUTTON}

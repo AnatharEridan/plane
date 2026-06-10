@@ -34,6 +34,7 @@ export interface IProjectStore {
   archivedProjectIds: string[] | undefined;
   totalProjectIds: string[] | undefined;
   joinedProjectIds: string[];
+  allWorkspaceProjectIds: string[];
   favoriteProjectIds: string[];
   currentProjectDetails: TProject | undefined;
   currentProjectNextSequenceId: number | undefined;
@@ -113,6 +114,7 @@ export class ProjectStore implements IProjectStore {
       totalProjectIds: computed,
       currentProjectDetails: computed,
       joinedProjectIds: computed,
+      allWorkspaceProjectIds: computed,
       favoriteProjectIds: computed,
       currentProjectNextSequenceId: computed,
       // helper actions
@@ -231,6 +233,21 @@ export class ProjectStore implements IProjectStore {
   get currentProjectNextSequenceId() {
     if (!this.rootStore.router.projectId) return undefined;
     return this.currentProjectDetails?.next_work_item_sequence;
+  }
+
+  /**
+   * Returns all non-archived project IDs in the current workspace (sorted).
+   */
+  get allWorkspaceProjectIds() {
+    const currentWorkspace = this.rootStore.workspaceRoot.currentWorkspace;
+    if (!currentWorkspace) return [];
+
+    let projects = Object.values(this.projectMap ?? {}).filter(
+      (project) => project.workspace === currentWorkspace.id && !project.archived_at
+    );
+    projects = sortBy(projects, "sort_order");
+
+    return projects.map((project) => project.id);
   }
 
   /**

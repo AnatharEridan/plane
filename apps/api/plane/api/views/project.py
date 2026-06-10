@@ -25,6 +25,7 @@ from plane.db.models import (
     Intake,
     Module,
     Project,
+    WorkspaceMember,
     DeployBoard,
     ProjectMember,
     State,
@@ -46,6 +47,7 @@ from plane.api.serializers import (
     ProjectUpdateSerializer,
 )
 from plane.app.permissions import ProjectBasePermission, WorkSpaceAdminPermission
+from plane.utils.permissions.workspace import Guest
 from plane.utils.openapi import (
     project_docs,
     PROJECT_ID_PARAMETER,
@@ -80,16 +82,23 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
     use_read_replica = True
 
     def get_queryset(self):
-        return (
-            Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
-            .filter(
+        slug = self.kwargs.get("slug")
+        projects = Project.objects.filter(workspace__slug=slug)
+        if WorkspaceMember.objects.filter(
+            member=self.request.user,
+            workspace__slug=slug,
+            is_active=True,
+            role=Guest,
+        ).exists():
+            projects = projects.filter(
                 Q(
                     project_projectmember__member=self.request.user,
                     project_projectmember__is_active=True,
                 )
                 | Q(network=2)
             )
-            .select_related("project_lead")
+        return (
+            projects.select_related("project_lead")
             .annotate(
                 is_member=Exists(
                     ProjectMember.objects.filter(
@@ -295,16 +304,23 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
     use_read_replica = True
 
     def get_queryset(self):
-        return (
-            Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
-            .filter(
+        slug = self.kwargs.get("slug")
+        projects = Project.objects.filter(workspace__slug=slug)
+        if WorkspaceMember.objects.filter(
+            member=self.request.user,
+            workspace__slug=slug,
+            is_active=True,
+            role=Guest,
+        ).exists():
+            projects = projects.filter(
                 Q(
                     project_projectmember__member=self.request.user,
                     project_projectmember__is_active=True,
                 )
                 | Q(network=2)
             )
-            .select_related("workspace", "workspace__owner", "default_assignee", "project_lead")
+        return (
+            projects.select_related("workspace", "workspace__owner", "default_assignee", "project_lead")
             .annotate(
                 is_member=Exists(
                     ProjectMember.objects.filter(
