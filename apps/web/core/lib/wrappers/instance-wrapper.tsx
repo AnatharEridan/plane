@@ -25,7 +25,13 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
   const { isLoading: isInstanceSWRLoading, error: instanceSWRError } = useSWR(
     "INSTANCE_INFORMATION",
     async () => await fetchInstanceInfo(),
-    { revalidateOnFocus: false }
+    {
+      revalidateOnFocus: false,
+      // Retry while API containers are still starting after deploy/restart.
+      errorRetryCount: 10,
+      errorRetryInterval: 2000,
+      shouldRetryOnError: true,
+    }
   );
 
   // loading state
@@ -36,7 +42,8 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
       </div>
     );
 
-  if (instanceSWRError) return <MaintenanceView />;
+  // Show maintenance only when instance info never loaded (e.g. API still down after retries).
+  if (instanceSWRError && !instance) return <MaintenanceView />;
 
   // something went wrong while in the request
   if (error && error?.status === "error") return <>{children}</>;
