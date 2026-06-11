@@ -265,6 +265,7 @@ export class WorkspaceMemberStore implements IWorkspaceMemberStore {
         set(this.workspaceMemberMap, [workspaceSlug, userId, "role"], data.role);
       });
       await this.workspaceService.updateWorkspaceMember(workspaceSlug, memberDetails.id, data);
+      this.memberRoot.project.syncMemberRoleAcrossProjects(userId, data.role);
     } catch (error) {
       // revert back to original members in case of error
       runInAction(() => {

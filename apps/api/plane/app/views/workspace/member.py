@@ -84,14 +84,21 @@ class WorkSpaceMemberViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # If a user is moved to a guest role he can't have any other role in projects
-        if "role" in request.data and int(request.data.get("role")) == 5:
-            ProjectMember.objects.filter(workspace__slug=slug, member_id=workspace_member.member_id).update(role=5)
-
+        previous_role = workspace_member.role
         serializer = WorkSpaceMemberSerializer(workspace_member, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
+
+            # Keep project roles in sync when the workspace role changes.
+            new_role = serializer.validated_data.get("role")
+            if new_role is not None and new_role != previous_role:
+                ProjectMember.objects.filter(
+                    workspace__slug=slug,
+                    member_id=workspace_member.member_id,
+                    is_active=True,
+                ).update(role=new_role, updated_at=timezone.now())
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

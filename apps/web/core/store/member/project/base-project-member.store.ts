@@ -81,6 +81,7 @@ export interface IBaseProjectMemberStore {
     userId: string,
     role: EUserProjectRoles
   ) => Promise<TProjectMembership>;
+  syncMemberRoleAcrossProjects: (userId: string, role: EUserPermissions) => void;
   removeMemberFromProject: (workspaceSlug: string, projectId: string, userId: string) => Promise<void>;
 }
 
@@ -120,6 +121,7 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
       updateProjectUserProperties: action,
       bulkAddMembersToProject: action,
       updateMemberRole: action,
+      syncMemberRoleAcrossProjects: action,
       removeMemberFromProject: action,
     });
     // root store
@@ -399,6 +401,22 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
       });
       throw error;
     }
+  };
+
+  /**
+   * @description sync a member's role across all cached project memberships
+   * @param userId
+   * @param role
+   */
+  syncMemberRoleAcrossProjects = (userId: string, role: EUserPermissions) => {
+    runInAction(() => {
+      Object.keys(this.projectMemberMap ?? {}).forEach((projectId) => {
+        if (!this.projectMemberMap[projectId]?.[userId]) return;
+
+        set(this.projectMemberMap, [projectId, userId, "role"], role);
+        set(this.projectMemberMap, [projectId, userId, "original_role"], role);
+      });
+    });
   };
 
   /**
