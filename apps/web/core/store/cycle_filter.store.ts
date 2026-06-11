@@ -128,7 +128,7 @@ export class CycleFilterStore implements ICycleFilterStore {
     runInAction(() => {
       this.displayFilters[projectId] = {
         active_tab: displayFilters?.active_tab || "active",
-        layout: displayFilters?.layout || "list",
+        layout: displayFilters?.layout || "kanban",
       };
       this.filters[projectId] = this.filters[projectId] ?? {
         default: {},

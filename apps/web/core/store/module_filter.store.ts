@@ -184,7 +184,7 @@ export class ModuleFilterStore implements IModuleFilterStore {
     runInAction(() => {
       this.displayFilters[projectId] = {
         favorites: displayFilters?.favorites || false,
-        layout: displayFilters?.layout || "list",
+        layout: displayFilters?.layout || "kanban",
         order_by: displayFilters?.order_by || "name",
       };
       this.filters[projectId] = this.filters[projectId] ?? {

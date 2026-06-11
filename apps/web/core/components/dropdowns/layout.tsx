@@ -24,7 +24,7 @@ type TLayoutDropDown = {
 };
 
 export const LayoutDropDown = observer(function LayoutDropDown(props: TLayoutDropDown) {
-  const { onChange, value = EIssueLayoutTypes.LIST, disabledLayouts = [] } = props;
+  const { onChange, value = EIssueLayoutTypes.KANBAN, disabledLayouts = [] } = props;
   // plane i18n
   const { t } = useTranslation();
   // derived values
