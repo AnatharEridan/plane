@@ -59,12 +59,9 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
 
-  // auth
-  const isAuthorizedUser = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-  const sidebarProjectIds = isAuthorizedUser ? allWorkspaceProjectIds : joinedProjects;
+  // auth — workspace admins see all projects; members and guests see only joined projects
+  const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const sidebarProjectIds = isWorkspaceAdmin ? allWorkspaceProjectIds : joinedProjects;
 
   // Compute limited projects for main sidebar
   const displayedProjects = projectPreferences.showLimitedProjects

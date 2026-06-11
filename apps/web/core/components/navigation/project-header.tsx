@@ -35,11 +35,8 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   // store hooks
   const { joinedProjectIds, allWorkspaceProjectIds, getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
-  const canSeeAllWorkspaceProjects = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-  const switcherProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjectIds;
+  const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const switcherProjectIds = isWorkspaceAdmin ? allWorkspaceProjectIds : joinedProjectIds;
 
   // Get current project details
   const currentProjectDetails = getPartialProjectById(projectId);

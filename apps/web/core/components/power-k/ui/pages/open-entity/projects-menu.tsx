@@ -24,11 +24,8 @@ export const PowerKOpenProjectMenu = observer(function PowerKOpenProjectMenu(pro
   // store hooks
   const { loader, joinedProjectIds, allWorkspaceProjectIds, getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
-  const canSeeAllWorkspaceProjects = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-  const visibleProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjectIds;
+  const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const visibleProjectIds = isWorkspaceAdmin ? allWorkspaceProjectIds : joinedProjectIds;
   // derived values
   const projectsList = visibleProjectIds
     ? visibleProjectIds.map((id) => getPartialProjectById(id)).filter((project) => project !== undefined)

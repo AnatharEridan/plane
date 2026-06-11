@@ -39,11 +39,8 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
   const { getPartialProjectById, joinedProjectIds: joinedProjects, allWorkspaceProjectIds, updateProjectView } =
     useProject();
   const { allowPermissions } = useUserPermissions();
-  const canSeeAllWorkspaceProjects = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-  const sidebarProjectIds = canSeeAllWorkspaceProjects ? allWorkspaceProjectIds : joinedProjects;
+  const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
+  const sidebarProjectIds = isWorkspaceAdmin ? allWorkspaceProjectIds : joinedProjects;
 
   const handleOnProjectDrop = (
     sourceId: string | undefined,
