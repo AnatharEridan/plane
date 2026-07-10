@@ -30,6 +30,7 @@ from plane.app.views import (
     IssueVersionEndpoint,
     WorkItemDescriptionVersionEndpoint,
     IssueMetaEndpoint,
+    IssueLinkPreviewEndpoint,
     IssueDetailIdentifierEndpoint,
 )
 
@@ -277,6 +278,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/meta/",
         IssueMetaEndpoint.as_view(),
         name="issue-meta",
+    ),
+    path(
+        "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/preview/",
+        IssueLinkPreviewEndpoint.as_view(),
+        name="issue-link-preview",
     ),
     path(
         "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/",

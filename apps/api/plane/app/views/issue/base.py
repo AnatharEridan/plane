@@ -5,6 +5,7 @@
 # Python imports
 import copy
 import json
+from html import escape
 
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -23,6 +24,7 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
@@ -1183,6 +1185,83 @@ class IssueMetaEndpoint(BaseAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class IssueLinkPreviewEndpoint(BaseAPIView):
+    def _preview_allowed(self, request):
+        user_agent = request.headers.get("User-Agent", "").lower()
+        return "pumble" in user_agent
+
+    def strict_str_to_int(self, s):
+        if not s.isdigit() and not (s.startswith("-") and s[1:].isdigit()):
+            raise ValueError("Invalid integer string")
+        return int(s)
+
+    def get(self, request, slug, project_identifier, issue_identifier):
+        if not self._preview_allowed(request):
+            return Response(
+                {"error": "The required object does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            issue_identifier = self.strict_str_to_int(issue_identifier)
+        except ValueError:
+            return Response(
+                {"error": "Invalid issue identifier"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        project = Project.objects.filter(identifier__iexact=project_identifier, workspace__slug=slug).first()
+        if not project:
+            return Response(
+                {"error": "The required object does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        issue = (
+            Issue.issue_objects.filter(project_id=project.id, workspace__slug=slug, sequence_id=issue_identifier)
+            .select_related("project", "state")
+            .only("id", "name", "sequence_id", "priority", "project__identifier", "state__name")
+            .first()
+        )
+        if not issue:
+            return Response(
+                {"error": "The required object does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        key = f"{issue.project.identifier}-{issue.sequence_id}"
+        state_name = issue.state.name if issue.state_id and issue.state else None
+        priority = issue.priority or None
+        details = []
+        if state_name:
+            details.append(f"Status: {state_name}")
+        if priority:
+            details.append(f"Priority: {priority.capitalize()}")
+
+        title = f"{key}: {issue.name}"
+        description = " · ".join(details) or "Plane work item"
+        url = request.build_absolute_uri(f"/{slug}/browse/{key}/")
+        html = f"""<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{escape(title)}</title>
+  <meta name="description" content="{escape(description)}">
+  <meta property="og:title" content="{escape(title)}">
+  <meta property="og:description" content="{escape(description)}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="{escape(url)}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{escape(title)}">
+  <meta name="twitter:description" content="{escape(description)}">
+</head>
+<body>
+  <p><a href="{escape(url)}">{escape(title)}</a></p>
+</body>
+</html>"""
+        return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 
 class IssueDetailIdentifierEndpoint(BaseAPIView):
