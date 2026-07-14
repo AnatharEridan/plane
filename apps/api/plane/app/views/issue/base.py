@@ -1193,7 +1193,7 @@ class IssueLinkPreviewEndpoint(BaseAPIView):
 
     def _preview_allowed(self, request):
         user_agent = request.headers.get("User-Agent", "").lower()
-        return "pumble" in user_agent
+        return "pumble" in user_agent or "iframely" in user_agent
 
     def strict_str_to_int(self, s):
         if not s.isdigit() and not (s.startswith("-") and s[1:].isdigit()):
