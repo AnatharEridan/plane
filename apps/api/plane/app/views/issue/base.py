@@ -31,6 +31,7 @@ from django.views.decorators.gzip import gzip_page
 
 # Third Party imports
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 # Module imports
@@ -1188,6 +1189,8 @@ class IssueMetaEndpoint(BaseAPIView):
 
 
 class IssueLinkPreviewEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
     def _preview_allowed(self, request):
         user_agent = request.headers.get("User-Agent", "").lower()
         return "pumble" in user_agent
