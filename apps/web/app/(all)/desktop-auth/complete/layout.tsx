@@ -4,8 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import { Outlet } from "react-router";
+import type { Route } from "./+types/layout";
 
-export default function DesktopAuthCompleteLayout({ children }: { children: ReactNode }) {
-  return children;
+export const meta: Route.MetaFunction = () => [{ title: "Plane Desktop" }];
+
+export default function DesktopAuthCompleteLayout() {
+  return <Outlet />;
 }
