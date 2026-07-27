@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
-export * from "./auth-browser-button";
-export * from "./helper";
-export * from "./sidebar-workspace-menu";
+import type { ReactNode } from "react";
+
+export default function DesktopAuthCompleteLayout({ children }: { children: ReactNode }) {
+  return children;
+}

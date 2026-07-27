@@ -11,6 +11,9 @@ from .views import (
     ResetPasswordEndpoint,
     ChangePasswordEndpoint,
     # App
+    DesktopAuthExchangeEndpoint,
+    DesktopAuthIssueCodeEndpoint,
+    DesktopAuthStartEndpoint,
     EmailCheckEndpoint,
     GitLabCallbackEndpoint,
     GitLabOauthInitiateEndpoint,
@@ -137,6 +140,10 @@ urlpatterns = [
     ),
     path("change-password/", ChangePasswordEndpoint.as_view(), name="forgot-password"),
     path("set-password/", SetUserPasswordEndpoint.as_view(), name="set-password"),
+    ## Desktop auth
+    path("desktop/start/", DesktopAuthStartEndpoint.as_view(), name="desktop-auth-start"),
+    path("desktop/issue-code/", DesktopAuthIssueCodeEndpoint.as_view(), name="desktop-auth-issue-code"),
+    path("desktop/exchange/", DesktopAuthExchangeEndpoint.as_view(), name="desktop-auth-exchange"),
     ## Gitea Oauth
     path("gitea/", GiteaOauthInitiateEndpoint.as_view(), name="gitea-initiate"),
     path("gitea/callback/", GiteaCallbackEndpoint.as_view(), name="gitea-callback"),

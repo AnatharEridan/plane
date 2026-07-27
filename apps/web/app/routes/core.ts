@@ -43,6 +43,11 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
   ]),
 
+  // Desktop browser auth callback
+  layout("./(all)/desktop-auth/complete/layout.tsx", [
+    route("desktop-auth/complete", "./(all)/desktop-auth/complete/page.tsx"),
+  ]),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================

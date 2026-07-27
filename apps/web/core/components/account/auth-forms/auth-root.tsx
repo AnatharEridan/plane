@@ -9,6 +9,8 @@ import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 // plane imports
 import { OAuthOptions } from "@plane/ui";
+// ce imports
+import { DesktopBrowserAuthButton } from "@/ce/components/desktop";
 // helpers
 import type { TAuthErrorInfo } from "@/helpers/authentication.helper";
 import {
@@ -137,13 +139,14 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
           authStep={authStep}
           authMode={authMode}
           email={email}
-          setEmail={(email) => setEmail(email)}
-          setAuthMode={(authMode) => setAuthMode(authMode)}
-          setAuthStep={(authStep) => setAuthStep(authStep)}
-          setErrorInfo={(errorInfo) => setErrorInfo(errorInfo)}
+          setEmail={(value) => setEmail(value)}
+          setAuthMode={(mode) => setAuthMode(mode)}
+          setAuthStep={(step) => setAuthStep(step)}
+          setErrorInfo={(info) => setErrorInfo(info)}
           currentAuthMode={currentAuthMode}
         />
       )}
+      <DesktopBrowserAuthButton />
       <TermsAndConditions authType={authMode} />
     </AuthContainer>
   );

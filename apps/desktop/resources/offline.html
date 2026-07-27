@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plane — Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter,
+          Segoe UI,
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0f1011;
+        color: #ececed;
+      }
+
+      .card {
+        width: min(420px, calc(100vw - 32px));
+        padding: 32px;
+        border: 1px solid #2a2b2d;
+        border-radius: 16px;
+        background: #151617;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 24px;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: #a8a8a8;
+        line-height: 1.5;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 16px;
+        background: #3b82f6;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Cannot reach Plane</h1>
+      <p>The server is unavailable or you are offline. Check your network connection and try again.</p>
+      <button id="retry">Retry connection</button>
+    </div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const serverUrl = params.get("serverUrl") || "http://localhost:3000";
+
+      document.getElementById("retry").addEventListener("click", () => {
+        window.location.href = serverUrl;
+      });
+    </script>
+  </body>
+</html>

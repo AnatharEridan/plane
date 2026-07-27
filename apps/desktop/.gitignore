@@ -1,0 +1,5 @@
+dist/
+release/
+.env
+node_modules/
+.turbo/

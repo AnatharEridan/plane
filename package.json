@@ -85,6 +85,7 @@
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@swc/core",
+      "electron",
       "esbuild",
       "msgpackr-extract",
       "turbo"

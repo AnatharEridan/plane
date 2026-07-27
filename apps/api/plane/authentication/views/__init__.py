@@ -5,7 +5,7 @@
 from .common import ChangePasswordEndpoint, CSRFTokenEndpoint, SetUserPasswordEndpoint
 
 from .app.check import EmailCheckEndpoint
-
+from .app.desktop import DesktopAuthExchangeEndpoint, DesktopAuthIssueCodeEndpoint, DesktopAuthStartEndpoint
 from .app.email import SignInAuthEndpoint, SignUpAuthEndpoint
 from .app.github import GitHubCallbackEndpoint, GitHubOauthInitiateEndpoint
 from .app.gitlab import GitLabCallbackEndpoint, GitLabOauthInitiateEndpoint

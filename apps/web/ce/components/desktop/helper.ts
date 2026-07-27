@@ -5,3 +5,7 @@
  */
 
 export const isSidebarToggleVisible = () => true;
+
+export const isDesktopApp = (): boolean =>
+  typeof window !== "undefined" &&
+  Boolean((window as Window & { electronAPI?: { isDesktop?: boolean } }).electronAPI?.isDesktop);
