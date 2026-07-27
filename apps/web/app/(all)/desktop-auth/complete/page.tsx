@@ -4,10 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@plane/constants";
-import { getButtonStyling } from "@plane/ui";
+import { Button, getButtonStyling } from "@plane/ui";
 import { cn } from "@plane/utils";
+import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EPageTypes } from "@/helpers/authentication.helper";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -21,11 +22,27 @@ type TIssueCodeResponse = {
   message?: string;
 };
 
+function openDesktopCallback(callbackUrl: string): void {
+  const link = document.createElement("a");
+  link.href = callbackUrl;
+  link.rel = "noopener noreferrer";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function DesktopAuthCompletePage() {
   const router = useAppRouter();
   const { data: currentUser, isLoading: isUserLoading } = useUser();
-  const [status, setStatus] = useState<"loading" | "error" | "redirecting">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("Connecting your desktop app...");
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+  const hasRequestedCode = useRef(false);
+
+  const launchDesktop = useCallback((url: string) => {
+    openDesktopCallback(url);
+  }, []);
 
   useEffect(() => {
     if (isUserLoading) {
@@ -36,6 +53,12 @@ function DesktopAuthCompletePage() {
       router.push("/?next_path=/desktop-auth/complete");
       return;
     }
+
+    if (hasRequestedCode.current) {
+      return;
+    }
+
+    hasRequestedCode.current = true;
 
     const completeDesktopAuth = async () => {
       try {
@@ -60,13 +83,18 @@ function DesktopAuthCompletePage() {
 
         if (!response.ok || !data.code || !data.redirect_uri) {
           setStatus("error");
-          setMessage(data.message || "Could not complete desktop sign-in.");
+          setMessage(data.message || "Could not complete desktop sign-in. Start sign-in from the Plane desktop app.");
           return;
         }
 
-        setStatus("redirecting");
-        setMessage("Opening Plane Desktop… If your browser asks, choose Open or Allow.");
-        window.location.href = `${data.redirect_uri}?code=${encodeURIComponent(data.code)}`;
+        const nextCallbackUrl = `${data.redirect_uri}?code=${encodeURIComponent(data.code)}`;
+        setCallbackUrl(nextCallbackUrl);
+        setStatus("ready");
+        setMessage("Sign-in successful. Open Plane Desktop to finish.");
+
+        window.setTimeout(() => {
+          launchDesktop(nextCallbackUrl);
+        }, 400);
       } catch {
         setStatus("error");
         setMessage("Could not reach the Plane server.");
@@ -74,23 +102,47 @@ function DesktopAuthCompletePage() {
     };
 
     void completeDesktopAuth();
-  }, [currentUser?.id, isUserLoading, router]);
+  }, [currentUser?.id, isUserLoading, launchDesktop, router]);
 
   return (
     <DefaultLayout>
       <div className="flex h-screen w-full flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-18 font-semibold text-primary">Plane Desktop</h1>
-        <p className="mt-3 max-w-md text-13 text-secondary">{message}</p>
-        {status === "error" && (
-          <a
-            href="/"
-            className={cn(
-              getButtonStyling("primary", "base"),
-              "mt-6 inline-flex items-center justify-center px-4 py-2"
+        {status === "loading" ? (
+          <LogoSpinner />
+        ) : (
+          <>
+            <h1 className="text-18 font-semibold text-primary">Plane Desktop</h1>
+            <p className="mt-3 max-w-md text-13 text-secondary">{message}</p>
+
+            {status === "ready" && callbackUrl && (
+              <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="base"
+                  className={cn(getButtonStyling("primary", "base"), "w-full")}
+                  onClick={() => launchDesktop(callbackUrl)}
+                >
+                  Open Plane Desktop
+                </Button>
+                <p className="text-11 text-tertiary">
+                  If your browser asks for permission, choose Open or Allow. You can close this tab after Plane opens.
+                </p>
+              </div>
             )}
-          >
-            Back to sign in
-          </a>
+
+            {status === "error" && (
+              <a
+                href="/"
+                className={cn(
+                  getButtonStyling("primary", "base"),
+                  "mt-6 inline-flex items-center justify-center px-4 py-2"
+                )}
+              >
+                Back to sign in
+              </a>
+            )}
+          </>
         )}
       </div>
     </DefaultLayout>

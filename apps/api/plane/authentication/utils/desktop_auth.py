@@ -11,6 +11,7 @@ from django.core.cache import cache
 DESKTOP_AUTH_CODE_TTL_SECONDS = 300
 DESKTOP_AUTH_SESSION_KEY = "desktop_auth_redirect_uri"
 DESKTOP_AUTH_CODE_PREFIX = "desktop_auth_code:"
+DESKTOP_AUTH_USER_PREFIX = "desktop_auth_user:"
 
 _PLANE_PROTOCOL_CALLBACKS = frozenset(
     {
@@ -49,11 +50,26 @@ def store_desktop_redirect_uri(request, redirect_uri: str) -> None:
     request.session[DESKTOP_AUTH_SESSION_KEY] = redirect_uri
     request.session.save()
 
+    user_id = getattr(request.user, "pk", None)
+    if user_id:
+        cache.set(
+            f"{DESKTOP_AUTH_USER_PREFIX}{user_id}",
+            redirect_uri,
+            DESKTOP_AUTH_CODE_TTL_SECONDS,
+        )
+
 
 def get_desktop_redirect_uri(request) -> str | None:
     redirect_uri = request.session.get(DESKTOP_AUTH_SESSION_KEY)
     if isinstance(redirect_uri, str) and is_valid_desktop_redirect_uri(redirect_uri):
         return redirect_uri
+
+    user_id = getattr(request.user, "pk", None)
+    if user_id:
+        cached = cache.get(f"{DESKTOP_AUTH_USER_PREFIX}{user_id}")
+        if isinstance(cached, str) and is_valid_desktop_redirect_uri(cached):
+            return cached
+
     return None
 
 
@@ -61,6 +77,10 @@ def clear_desktop_redirect_uri(request) -> None:
     if DESKTOP_AUTH_SESSION_KEY in request.session:
         del request.session[DESKTOP_AUTH_SESSION_KEY]
         request.session.save()
+
+    user_id = getattr(request.user, "pk", None)
+    if user_id:
+        cache.delete(f"{DESKTOP_AUTH_USER_PREFIX}{user_id}")
 
 
 def create_desktop_auth_code(user_id: str, redirect_uri: str) -> str:
