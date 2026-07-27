@@ -5,12 +5,11 @@
 import json
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from django.http import HttpResponseRedirect, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from importlib import import_module
 
 from plane.authentication.adapter.error import AUTHENTICATION_ERROR_CODES, AuthenticationException
 from plane.authentication.utils.desktop_auth import (
@@ -22,6 +21,7 @@ from plane.authentication.utils.desktop_auth import (
     store_desktop_redirect_uri,
 )
 from plane.authentication.utils.host import base_host
+from plane.utils.ip_address import get_client_ip
 
 User = get_user_model()
 
@@ -117,23 +117,21 @@ class DesktopAuthExchangeEndpoint(View):
             )
             return JsonResponse(exc.get_error_dict(), status=404)
 
-        engine = import_module(settings.SESSION_ENGINE)
-        session_store = engine.SessionStore()
-        session_store["_auth_user_id"] = str(user.id)
-        session_store["_auth_user_backend"] = "django.contrib.auth.backends.ModelBackend"
-        session_store["device_info"] = {
+        login(request, user)
+        request.session["device_info"] = {
             "user_agent": request.META.get("HTTP_USER_AGENT", ""),
-            "ip_address": request.META.get("REMOTE_ADDR", ""),
+            "ip_address": get_client_ip(request=request),
             "domain": base_host(request=request, is_app=True),
             "client": "desktop",
         }
-        session_store.set_expiry(settings.SESSION_COOKIE_AGE)
-        session_store.save()
+        request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+        request.session.save()
 
         return JsonResponse(
             {
-                "session_key": session_store.session_key,
+                "session_key": request.session.session_key,
                 "session_cookie_name": settings.SESSION_COOKIE_NAME,
+                "session_cookie_domain": settings.SESSION_COOKIE_DOMAIN,
                 "expires_in": settings.SESSION_COOKIE_AGE,
             }
         )

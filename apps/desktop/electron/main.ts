@@ -1,6 +1,6 @@
 import path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
-import { registerApplicationMenu, handleBrowserAuth } from "./app-menu";
+import { registerApplicationMenu, handleBrowserAuth, handleAuthDeepLink } from "./app-menu";
 import { desktopConfig } from "./config";
 import { getNotificationWatcherScript } from "./notification-watcher";
 import { getBrowserAuthButtonScript } from "./browser-auth-ui";
@@ -37,25 +37,16 @@ if (!gotSingleInstanceLock) {
   app.on("second-instance", (_event, commandLine) => {
     const deepLink = commandLine.find((arg) => arg.startsWith(`${DESKTOP_PROTOCOL}://`));
     if (deepLink) {
-      void completeAuthFromDeepLink(deepLink, () => {
-        if (mainWindow) {
-          void mainWindow.loadURL(desktopConfig.serverUrl);
-        }
-      });
+      void handleAuthDeepLink(mainWindow, () => completeAuthFromDeepLink(deepLink));
+    } else {
+      focusMainWindow();
     }
-
-    focusMainWindow();
   });
 }
 
 app.on("open-url", (event, url) => {
   event.preventDefault();
-  void completeAuthFromDeepLink(url, () => {
-    if (mainWindow) {
-      void mainWindow.loadURL(desktopConfig.serverUrl);
-    }
-  });
-  focusMainWindow();
+  void handleAuthDeepLink(mainWindow, () => completeAuthFromDeepLink(url));
 });
 
 function createMainWindow(): BrowserWindow {
@@ -194,19 +185,6 @@ function registerIpcHandlers(): void {
 }
 
 void app.whenReady().then(() => {
-  const reloadAfterAuth = (): void => {
-    if (mainWindow) {
-      void mainWindow.loadURL(desktopConfig.serverUrl);
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  };
-
-  const launchDeepLink = getDeepLinkFromArgv(process.argv);
-  if (launchDeepLink) {
-    void completeAuthFromDeepLink(launchDeepLink, reloadAfterAuth);
-  }
-
   configureWindowsNotifications();
   configurePlaneSession();
   attachCertificatePolicy();
@@ -215,6 +193,11 @@ void app.whenReady().then(() => {
 
   mainWindow = createMainWindow();
   registerDevShortcuts();
+
+  const launchDeepLink = getDeepLinkFromArgv(process.argv);
+  if (launchDeepLink) {
+    void handleAuthDeepLink(mainWindow, () => completeAuthFromDeepLink(launchDeepLink));
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
