@@ -9,11 +9,9 @@ import { API_BASE_URL } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { EPageTypes } from "@/helpers/authentication.helper";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import DefaultLayout from "@/layouts/default-layout";
-import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 
 type TIssueCodeResponse = {
   code?: string;
@@ -32,9 +30,9 @@ function openDesktopCallback(callbackUrl: string): void {
   link.remove();
 }
 
-function DesktopAuthCompletePage() {
+export default function DesktopAuthCompletePage() {
   const router = useAppRouter();
-  const { data: currentUser, isLoading: isUserLoading } = useUser();
+  const { data: currentUser, isLoading: isUserLoading, fetchCurrentUser } = useUser();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("Connecting your desktop app...");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
@@ -45,12 +43,16 @@ function DesktopAuthCompletePage() {
   }, []);
 
   useEffect(() => {
+    void fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  useEffect(() => {
     if (isUserLoading) {
       return;
     }
 
     if (!currentUser?.id) {
-      router.push("/?next_path=/desktop-auth/complete");
+      router.replace("/?next_path=/desktop-auth/complete");
       return;
     }
 
@@ -83,7 +85,10 @@ function DesktopAuthCompletePage() {
 
         if (!response.ok || !data.code || !data.redirect_uri) {
           setStatus("error");
-          setMessage(data.message || "Could not complete desktop sign-in. Start sign-in from the Plane desktop app.");
+          setMessage(
+            data.message ||
+              "Could not complete desktop sign-in. Start sign-in from the Plane desktop app (Ctrl+Shift+B)."
+          );
           return;
         }
 
@@ -108,7 +113,10 @@ function DesktopAuthCompletePage() {
     <DefaultLayout>
       <div className="flex h-screen w-full flex-col items-center justify-center px-6 text-center">
         {status === "loading" ? (
-          <LogoSpinner />
+          <>
+            <LogoSpinner />
+            <p className="mt-4 text-13 text-secondary">{message}</p>
+          </>
         ) : (
           <>
             <h1 className="text-18 font-semibold text-primary">Plane Desktop</h1>
@@ -146,13 +154,5 @@ function DesktopAuthCompletePage() {
         )}
       </div>
     </DefaultLayout>
-  );
-}
-
-export default function Page() {
-  return (
-    <AuthenticationWrapper pageType={EPageTypes.PUBLIC}>
-      <DesktopAuthCompletePage />
-    </AuthenticationWrapper>
   );
 }
