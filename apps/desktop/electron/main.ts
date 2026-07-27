@@ -2,15 +2,15 @@ import path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
 import { registerApplicationMenu, handleBrowserAuth, handleAuthDeepLink } from "./app-menu";
 import { desktopConfig } from "./config";
-import { getNotificationWatcherScript } from "./notification-watcher";
 import { getBrowserAuthButtonScript } from "./browser-auth-ui";
 import {
   configureWindowsNotifications,
   initializeWindowsNotifications,
   showDesktopNotification,
-  updateTaskbarBadge,
+  updateMainWindowTitle,
   type DesktopNotificationPayload,
 } from "./notifications";
+import { startDesktopNotificationPoller } from "./notification-poller";
 import { configureAppPaths, configurePlaneSession, registerSessionPersistenceHandlers } from "./session-manager";
 import { attachCertificatePolicy, attachNavigationSecurity, isAllowedNavigationUrl } from "./security";
 import { getDeepLinkFromArgv, completeAuthFromDeepLink } from "./auth-broker";
@@ -116,15 +116,6 @@ async function injectDesktopScripts(window: BrowserWindow): Promise<void> {
   } catch (error) {
     console.warn("[Plane Desktop] Failed to inject browser auth UI", error);
   }
-
-  try {
-    await window.webContents.executeJavaScript(
-      getNotificationWatcherScript(desktopConfig.pollIntervalMs, desktopConfig.apiBaseUrl),
-      true
-    );
-  } catch (error) {
-    console.warn("[Plane Desktop] Failed to inject notification watcher", error);
-  }
 }
 
 function focusMainWindow(): void {
@@ -168,15 +159,7 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.handle("desktop:set-unread-count", (_event, count: number) => {
-    updateTaskbarBadge(mainWindow, count);
-
-    if (mainWindow) {
-      if (count > 0) {
-        mainWindow.setTitle(`Plane (${count})`);
-      } else {
-        mainWindow.setTitle("Plane");
-      }
-    }
+    updateMainWindowTitle(mainWindow, count);
   });
 
   ipcMain.handle("desktop:start-browser-auth", async () => handleBrowserAuth(mainWindow));
@@ -191,6 +174,18 @@ void app.whenReady().then(() => {
 
   mainWindow = createMainWindow();
   registerNotificationTestShortcut();
+
+  startDesktopNotificationPoller(
+    desktopConfig.pollIntervalMs,
+    (url) => {
+      focusMainWindow();
+
+      if (url && mainWindow && isAllowedNavigationUrl(url)) {
+        void mainWindow.loadURL(url);
+      }
+    },
+    () => mainWindow
+  );
 
   const launchDeepLink = getDeepLinkFromArgv(process.argv);
   if (launchDeepLink) {

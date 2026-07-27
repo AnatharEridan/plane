@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { app, BrowserWindow, Notification, nativeImage, shell } from "electron";
+import notifier from "node-notifier";
 import { desktopConfig } from "./config";
 
 export type DesktopNotificationPayload = {
@@ -11,7 +12,7 @@ export type DesktopNotificationPayload = {
 };
 
 const activeNotifications = new Map<string, Notification>();
-let notificationIcon: Electron.NativeImage | undefined;
+let notificationIconPath: string | undefined;
 
 function getResourcesDirectory(): string {
   if (app.isPackaged) {
@@ -21,9 +22,9 @@ function getResourcesDirectory(): string {
   return path.join(__dirname, "../resources");
 }
 
-function getNotificationIcon(): Electron.NativeImage | undefined {
-  if (notificationIcon && !notificationIcon.isEmpty()) {
-    return notificationIcon;
+function getNotificationIconPath(): string | undefined {
+  if (notificationIconPath && fs.existsSync(notificationIconPath)) {
+    return notificationIconPath;
   }
 
   const candidates = [
@@ -33,18 +34,27 @@ function getNotificationIcon(): Electron.NativeImage | undefined {
   ];
 
   for (const candidate of candidates) {
-    if (!fs.existsSync(candidate)) {
-      continue;
-    }
-
-    const image = nativeImage.createFromPath(candidate);
-    if (!image.isEmpty()) {
-      notificationIcon = image.resize({ width: 256, height: 256 });
-      return notificationIcon;
+    if (fs.existsSync(candidate)) {
+      notificationIconPath = candidate;
+      return notificationIconPath;
     }
   }
 
   return undefined;
+}
+
+function getNotificationIconImage(): Electron.NativeImage | undefined {
+  const iconPath = getNotificationIconPath();
+  if (!iconPath) {
+    return undefined;
+  }
+
+  const image = nativeImage.createFromPath(iconPath);
+  if (image.isEmpty()) {
+    return undefined;
+  }
+
+  return image.resize({ width: 256, height: 256 });
 }
 
 function ensureWindowsNotificationShortcut(): void {
@@ -83,7 +93,35 @@ export function initializeWindowsNotifications(): void {
   ensureWindowsNotificationShortcut();
 }
 
-export function showDesktopNotification(
+function showWindowsToast(
+  payload: DesktopNotificationPayload,
+  onClick?: (payload: DesktopNotificationPayload) => void
+): void {
+  const icon = getNotificationIconPath();
+
+  notifier.notify(
+    {
+      appID: desktopConfig.appUserModelId,
+      title: payload.title,
+      message: payload.body,
+      icon,
+      sound: true,
+      wait: true,
+    },
+    (error, response) => {
+      if (error) {
+        console.warn("[Plane Desktop] node-notifier failed:", error);
+        return;
+      }
+
+      if (response === "activate") {
+        onClick?.(payload);
+      }
+    }
+  );
+}
+
+function showElectronNotification(
   payload: DesktopNotificationPayload,
   onClick?: (payload: DesktopNotificationPayload) => void
 ): void {
@@ -91,14 +129,12 @@ export function showDesktopNotification(
     return;
   }
 
-  const icon = getNotificationIcon();
+  const icon = getNotificationIconImage();
   const notification = new Notification({
     title: payload.title,
     body: payload.body,
     icon: icon && !icon.isEmpty() ? icon : undefined,
     silent: false,
-    urgency: "normal",
-    timeoutType: "default",
   });
 
   activeNotifications.set(payload.id, notification);
@@ -119,7 +155,19 @@ export function showDesktopNotification(
   notification.show();
 }
 
-export function updateTaskbarBadge(mainWindow: BrowserWindow | null, unreadCount: number): void {
+export function showDesktopNotification(
+  payload: DesktopNotificationPayload,
+  onClick?: (payload: DesktopNotificationPayload) => void
+): void {
+  if (process.platform === "win32") {
+    showWindowsToast(payload, onClick);
+    return;
+  }
+
+  showElectronNotification(payload, onClick);
+}
+
+export function updateMainWindowTitle(mainWindow: BrowserWindow | null, unreadCount: number): void {
   if (!mainWindow) {
     return;
   }

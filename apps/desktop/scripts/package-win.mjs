@@ -27,11 +27,14 @@ async function main() {
         version: sourcePackage.version,
         private: true,
         main: "./dist/main.js",
+        dependencies: sourcePackage.dependencies ?? {},
       },
       null,
       2
     )
   );
+
+  copyModuleWithDependencies(appDir, stagingDir, "node-notifier", new Set());
 
   const packagedApps = await packager({
     dir: stagingDir,
@@ -43,7 +46,7 @@ async function main() {
     overwrite: true,
     icon: path.join(stagingDir, "resources", "icon.png"),
     electronVersion: sourcePackage.devDependencies.electron,
-    prune: true,
+    prune: false,
     appCopyright: "Plane Software Inc.",
     appVersion: sourcePackage.version,
   });
@@ -69,6 +72,47 @@ async function main() {
     } else {
       console.log("7-Zip not found, skipped portable exe. Use Plane.exe from the app folder above.");
     }
+  }
+}
+
+function resolveModulePath(rootDir, moduleName) {
+  const localPath = path.join(rootDir, "node_modules", moduleName);
+  if (existsSync(localPath)) {
+    return localPath;
+  }
+
+  const workspaceRootPath = path.join(rootDir, "..", "..", "node_modules", moduleName);
+  if (existsSync(workspaceRootPath)) {
+    return workspaceRootPath;
+  }
+
+  return null;
+}
+
+function copyModuleWithDependencies(rootDir, targetDir, moduleName, copied) {
+  if (copied.has(moduleName)) {
+    return;
+  }
+
+  const sourcePath = resolveModulePath(rootDir, moduleName);
+  if (!sourcePath) {
+    return;
+  }
+
+  copied.add(moduleName);
+
+  const destinationPath = path.join(targetDir, "node_modules", moduleName);
+  mkdirSync(path.dirname(destinationPath), { recursive: true });
+  cpSync(sourcePath, destinationPath, { recursive: true, dereference: true });
+
+  const packageJsonPath = path.join(sourcePath, "package.json");
+  if (!existsSync(packageJsonPath)) {
+    return;
+  }
+
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  for (const dependencyName of Object.keys(packageJson.dependencies ?? {})) {
+    copyModuleWithDependencies(rootDir, targetDir, dependencyName, copied);
   }
 }
 

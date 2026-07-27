@@ -21,12 +21,15 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {},
+  "dependencies": {
+    "node-notifier": "^10.0.1"
+  },
   "devDependencies": {
     "@electron/asar": "3.4.1",
     "@electron/packager": "18.3.6",
     "@plane/typescript-config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/node-notifier": "^8.0.5",
     "electron": "35.1.2",
     "typescript": "catalog:",
     "vitest": "^4.0.8"
