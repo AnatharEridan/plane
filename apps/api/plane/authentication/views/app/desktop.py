@@ -44,14 +44,13 @@ class DesktopAuthStartEndpoint(View):
         store_desktop_redirect_uri(request, redirect_uri)
 
         web_base_url = _get_web_base_url()
-        complete_url = (
-            f"{web_base_url}/desktop-auth/complete?redirect_uri={quote(redirect_uri, safe='')}"
-        )
+        complete_path = f"/desktop-auth/complete?redirect_uri={quote(redirect_uri, safe='')}"
+        complete_url = f"{web_base_url}{complete_path}"
 
         if request.user.is_authenticated:
             return HttpResponseRedirect(complete_url)
 
-        return HttpResponseRedirect(f"{web_base_url}/?next_path=/desktop-auth/complete")
+        return HttpResponseRedirect(f"{web_base_url}/?next_path={quote(complete_path, safe='')}")
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -63,7 +62,17 @@ class DesktopAuthIssueCodeEndpoint(View):
                 status=401,
             )
 
-        redirect_uri = get_desktop_redirect_uri(request)
+        fallback_redirect_uri = None
+        if request.body:
+            try:
+                payload = json.loads(request.body.decode("utf-8"))
+                candidate = payload.get("redirect_uri")
+                if isinstance(candidate, str):
+                    fallback_redirect_uri = candidate
+            except json.JSONDecodeError:
+                pass
+
+        redirect_uri = get_desktop_redirect_uri(request, fallback_redirect_uri=fallback_redirect_uri)
         if not redirect_uri:
             return JsonResponse(
                 {"error": "DESKTOP_AUTH_NOT_STARTED", "message": "Desktop sign-in was not initiated."},

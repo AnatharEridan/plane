@@ -10,8 +10,10 @@ from django.core.cache import cache
 
 DESKTOP_AUTH_CODE_TTL_SECONDS = 300
 DESKTOP_AUTH_SESSION_KEY = "desktop_auth_redirect_uri"
+DESKTOP_AUTH_CACHE_KEY = "desktop_auth_cache_key"
 DESKTOP_AUTH_CODE_PREFIX = "desktop_auth_code:"
 DESKTOP_AUTH_USER_PREFIX = "desktop_auth_user:"
+DESKTOP_AUTH_PENDING_PREFIX = "desktop_auth_pending:"
 
 _PLANE_PROTOCOL_CALLBACKS = frozenset(
     {
@@ -48,6 +50,17 @@ def is_valid_desktop_redirect_uri(redirect_uri: str) -> bool:
 
 def store_desktop_redirect_uri(request, redirect_uri: str) -> None:
     request.session[DESKTOP_AUTH_SESSION_KEY] = redirect_uri
+
+    cache_key = request.session.get(DESKTOP_AUTH_CACHE_KEY)
+    if not isinstance(cache_key, str) or not cache_key:
+        cache_key = secrets.token_urlsafe(16)
+        request.session[DESKTOP_AUTH_CACHE_KEY] = cache_key
+
+    cache.set(
+        f"{DESKTOP_AUTH_PENDING_PREFIX}{cache_key}",
+        redirect_uri,
+        DESKTOP_AUTH_CODE_TTL_SECONDS,
+    )
     request.session.save()
 
     user_id = getattr(request.user, "pk", None)
@@ -59,10 +72,16 @@ def store_desktop_redirect_uri(request, redirect_uri: str) -> None:
         )
 
 
-def get_desktop_redirect_uri(request) -> str | None:
+def get_desktop_redirect_uri(request, fallback_redirect_uri: str | None = None) -> str | None:
     redirect_uri = request.session.get(DESKTOP_AUTH_SESSION_KEY)
     if isinstance(redirect_uri, str) and is_valid_desktop_redirect_uri(redirect_uri):
         return redirect_uri
+
+    cache_key = request.session.get(DESKTOP_AUTH_CACHE_KEY)
+    if isinstance(cache_key, str) and cache_key:
+        cached = cache.get(f"{DESKTOP_AUTH_PENDING_PREFIX}{cache_key}")
+        if isinstance(cached, str) and is_valid_desktop_redirect_uri(cached):
+            return cached
 
     user_id = getattr(request.user, "pk", None)
     if user_id:
@@ -70,13 +89,25 @@ def get_desktop_redirect_uri(request) -> str | None:
         if isinstance(cached, str) and is_valid_desktop_redirect_uri(cached):
             return cached
 
+    if (
+        isinstance(fallback_redirect_uri, str)
+        and is_valid_desktop_redirect_uri(fallback_redirect_uri)
+    ):
+        return fallback_redirect_uri
+
     return None
 
 
 def clear_desktop_redirect_uri(request) -> None:
     if DESKTOP_AUTH_SESSION_KEY in request.session:
         del request.session[DESKTOP_AUTH_SESSION_KEY]
-        request.session.save()
+
+    cache_key = request.session.get(DESKTOP_AUTH_CACHE_KEY)
+    if isinstance(cache_key, str) and cache_key:
+        cache.delete(f"{DESKTOP_AUTH_PENDING_PREFIX}{cache_key}")
+        del request.session[DESKTOP_AUTH_CACHE_KEY]
+
+    request.session.save()
 
     user_id = getattr(request.user, "pk", None)
     if user_id:

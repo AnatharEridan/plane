@@ -4,9 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@plane/constants";
-import { Button, getButtonStyling } from "@plane/ui";
+import { getButtonStyling } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -18,16 +19,6 @@ type TIssueCodeResponse = {
   error?: string;
   message?: string;
 };
-
-function openDesktopCallback(callbackUrl: string): void {
-  // Do not use <a href="plane://..."> or location.assign — that navigates this tab
-  // and Chrome shows an error page (often reported as HTTP 502).
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = callbackUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), 2000);
-}
 
 async function fetchAuthenticatedUserId(): Promise<string | null> {
   const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
@@ -45,14 +36,12 @@ async function fetchAuthenticatedUserId(): Promise<string | null> {
 
 export default function DesktopAuthCompletePage() {
   const router = useAppRouter();
+  const searchParams = useSearchParams();
+  const redirectUriFromQuery = searchParams.get("redirect_uri");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("Preparing desktop sign-in...");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const hasStarted = useRef(false);
-
-  const launchDesktop = useCallback((url: string) => {
-    openDesktopCallback(url);
-  }, []);
 
   useEffect(() => {
     if (hasStarted.current) {
@@ -66,7 +55,10 @@ export default function DesktopAuthCompletePage() {
         const userId = await fetchAuthenticatedUserId();
 
         if (!userId) {
-          router.replace("/?next_path=/desktop-auth/complete");
+          const nextPath = redirectUriFromQuery
+            ? `/desktop-auth/complete?redirect_uri=${encodeURIComponent(redirectUriFromQuery)}`
+            : "/desktop-auth/complete";
+          router.replace(`/?next_path=${encodeURIComponent(nextPath)}`);
           return;
         }
 
@@ -77,6 +69,7 @@ export default function DesktopAuthCompletePage() {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
+          body: JSON.stringify(redirectUriFromQuery ? { redirect_uri: redirectUriFromQuery } : {}),
         });
 
         let data: TIssueCodeResponse = {};
@@ -106,7 +99,7 @@ export default function DesktopAuthCompletePage() {
     };
 
     void completeDesktopAuth();
-  }, [router]);
+  }, [redirectUriFromQuery, router]);
 
   return (
     <DefaultLayout>
@@ -123,15 +116,23 @@ export default function DesktopAuthCompletePage() {
 
             {status === "ready" && callbackUrl && (
               <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="base"
-                  className={cn(getButtonStyling("primary", "base"), "w-full")}
-                  onClick={() => launchDesktop(callbackUrl)}
+                <a
+                  href={callbackUrl}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    const iframe = document.createElement("iframe");
+                    iframe.style.display = "none";
+                    iframe.src = callbackUrl;
+                    document.body.appendChild(iframe);
+                    window.setTimeout(() => iframe.remove(), 2000);
+                  }}
+                  className={cn(
+                    getButtonStyling("primary", "base"),
+                    "inline-flex w-full items-center justify-center no-underline"
+                  )}
                 >
                   Open Plane Desktop
-                </Button>
+                </a>
                 <p className="text-11 text-tertiary">
                   If your browser asks for permission, choose Open or Allow. You can close this tab after Plane opens.
                 </p>
