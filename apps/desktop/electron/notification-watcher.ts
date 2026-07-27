@@ -5,40 +5,31 @@
 export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl: string): string {
   return `
 (function () {
-  if (window.__planeDesktopNotificationWatcher) return;
+  if (window.__planeDesktopNotificationWatcher) {
+    if (typeof window.__planeDesktopPollNow === "function") {
+      window.__planeDesktopPollNow();
+    }
+    return;
+  }
   window.__planeDesktopNotificationWatcher = true;
 
   var POLL_INTERVAL_MS = ${pollIntervalMs};
   var API_BASE_URL = ${JSON.stringify(apiBaseUrl)};
-  var RESERVED_PATHS = new Set([
-    "login",
-    "sign-in",
-    "sign-up",
-    "register",
-    "accounts",
-    "invitations",
-    "onboarding",
-    "create-workspace",
-    "god-mode",
-    "spaces",
-    "live",
-    "api",
-    "auth",
-    "static",
-  ]);
 
   var state = {
-    workspaceSlug: null,
-    lastUnreadCount: 0,
+    workspaceStates: new Map(),
     seenNotificationIds: new Set(),
-    initialized: false,
+    pollTimerId: null,
   };
 
-  function getWorkspaceSlug() {
-    var parts = window.location.pathname.split("/").filter(Boolean);
-    var slug = parts[0];
-    if (!slug || RESERVED_PATHS.has(slug)) return null;
-    return slug;
+  function getWorkspaceState(slug) {
+    if (!state.workspaceStates.has(slug)) {
+      state.workspaceStates.set(slug, {
+        initialized: false,
+        lastUnreadCount: 0,
+      });
+    }
+    return state.workspaceStates.get(slug);
   }
 
   function stripHtml(value) {
@@ -63,6 +54,28 @@ export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl:
       return window.location.origin + "/" + workspaceSlug + "/browse/" + notification.data.issue.identifier;
     }
     return window.location.origin + "/" + workspaceSlug + "/notifications";
+  }
+
+  async function fetchUserWorkspaces() {
+    var response = await fetch(API_BASE_URL + "/api/users/me/workspaces/", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    var data = await response.json();
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data
+      .map(function (workspace) {
+        return workspace && workspace.slug ? workspace.slug : null;
+      })
+      .filter(Boolean);
   }
 
   async function fetchUnreadCount(workspaceSlug) {
@@ -97,14 +110,21 @@ export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl:
     return Array.isArray(data.results) ? data.results : [];
   }
 
+  function getTotalUnreadCount(unread) {
+    return (
+      (unread.total_unread_notifications_count || 0) +
+      (unread.mention_unread_notifications_count || 0)
+    );
+  }
+
   async function notifyNewItems(workspaceSlug, unreadCount) {
     if (!window.electronAPI || typeof window.electronAPI.showNotification !== "function") {
       return;
     }
 
-    window.electronAPI.setUnreadCount(unreadCount);
+    var workspaceState = getWorkspaceState(workspaceSlug);
 
-    if (!state.initialized) {
+    if (!workspaceState.initialized) {
       if (unreadCount > 0) {
         var existingNotifications = await fetchLatestNotifications(workspaceSlug);
         for (var i = 0; i < existingNotifications.length; i++) {
@@ -115,20 +135,20 @@ export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl:
         }
       }
 
-      state.initialized = true;
-      state.lastUnreadCount = unreadCount;
+      workspaceState.initialized = true;
+      workspaceState.lastUnreadCount = unreadCount;
       return;
     }
 
-    if (unreadCount <= state.lastUnreadCount) {
-      state.lastUnreadCount = unreadCount;
+    if (unreadCount <= workspaceState.lastUnreadCount) {
+      workspaceState.lastUnreadCount = unreadCount;
       return;
     }
 
     var notifications = await fetchLatestNotifications(workspaceSlug);
 
-    for (var i = notifications.length - 1; i >= 0; i--) {
-      var notification = notifications[i];
+    for (var j = notifications.length - 1; j >= 0; j--) {
+      var notification = notifications[j];
       if (!notification || !notification.id || state.seenNotificationIds.has(notification.id)) {
         continue;
       }
@@ -143,7 +163,7 @@ export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl:
       });
     }
 
-    state.lastUnreadCount = unreadCount;
+    workspaceState.lastUnreadCount = unreadCount;
   }
 
   async function pollNotifications() {
@@ -151,36 +171,38 @@ export function getNotificationWatcherScript(pollIntervalMs: number, apiBaseUrl:
       return;
     }
 
-    var workspaceSlug = getWorkspaceSlug();
-    if (!workspaceSlug) {
-      state.workspaceSlug = null;
-      state.initialized = false;
-      state.lastUnreadCount = 0;
-      return;
-    }
-
-    if (state.workspaceSlug !== workspaceSlug) {
-      state.workspaceSlug = workspaceSlug;
-      state.initialized = false;
-      state.lastUnreadCount = 0;
-      state.seenNotificationIds.clear();
-    }
-
     try {
-      var unread = await fetchUnreadCount(workspaceSlug);
-      if (!unread) return;
+      var workspaceSlugs = await fetchUserWorkspaces();
+      if (!workspaceSlugs.length) {
+        return;
+      }
 
-      var unreadCount = unread.total_unread_notifications_count || 0;
-      await notifyNewItems(workspaceSlug, unreadCount);
+      var totalUnread = 0;
+
+      for (var i = 0; i < workspaceSlugs.length; i++) {
+        var workspaceSlug = workspaceSlugs[i];
+        var unread = await fetchUnreadCount(workspaceSlug);
+        if (!unread) {
+          continue;
+        }
+
+        var unreadCount = getTotalUnreadCount(unread);
+        totalUnread += unreadCount;
+        await notifyNewItems(workspaceSlug, unreadCount);
+      }
+
+      if (typeof window.electronAPI.setUnreadCount === "function") {
+        window.electronAPI.setUnreadCount(totalUnread);
+      }
     } catch (error) {
       console.warn("[Plane Desktop] Notification poll failed", error);
     }
   }
 
-  window.addEventListener("load", function () {
-    setTimeout(pollNotifications, 3000);
-    setInterval(pollNotifications, POLL_INTERVAL_MS);
-  });
+  window.__planeDesktopPollNow = pollNotifications;
+
+  setTimeout(pollNotifications, 2000);
+  state.pollTimerId = window.setInterval(pollNotifications, POLL_INTERVAL_MS);
 
   var originalPushState = history.pushState;
   history.pushState = function () {

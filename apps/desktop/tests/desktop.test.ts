@@ -56,6 +56,8 @@ describe("getNotificationWatcherScript", () => {
     expect(script).toContain('"https://devilgate-dev.ru"');
     expect(script).toContain("window.electronAPI.showNotification");
     expect(script).toContain("users/notifications/unread/");
+    expect(script).toContain("/api/users/me/workspaces/");
+    expect(script).toContain("window.__planeDesktopPollNow");
   });
 
   it("avoids duplicate watcher initialization", () => {

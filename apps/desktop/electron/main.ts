@@ -138,11 +138,7 @@ function focusMainWindow(): void {
   mainWindow.focus();
 }
 
-function registerDevShortcuts(): void {
-  if (app.isPackaged) {
-    return;
-  }
-
+function registerNotificationTestShortcut(): void {
   globalShortcut.register("Control+Shift+N", () => {
     showDesktopNotification(
       {
@@ -192,7 +188,7 @@ void app.whenReady().then(() => {
   registerApplicationMenu(() => mainWindow);
 
   mainWindow = createMainWindow();
-  registerDevShortcuts();
+  registerNotificationTestShortcut();
 
   const launchDeepLink = getDeepLinkFromArgv(process.argv);
   if (launchDeepLink) {

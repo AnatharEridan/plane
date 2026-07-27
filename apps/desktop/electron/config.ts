@@ -10,7 +10,7 @@ export const desktopConfig = {
   sessionPartition: "persist:plane",
   allowInsecureCert: false,
   allowedHosts: [serverUrl.hostname],
-  pollIntervalMs: 30_000,
+  pollIntervalMs: 15_000,
   appUserModelId: "so.plane.desktop",
   userAgentSuffix: "PlaneDesktop/0.1.0",
 };
