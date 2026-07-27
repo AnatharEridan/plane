@@ -27,6 +27,10 @@ export function configurePlaneSession(): void {
 
 export function registerSessionPersistenceHandlers(): void {
   app.on("before-quit", (event) => {
+    if (!app.isReady() || !planeSession) {
+      return;
+    }
+
     if (isFlushingSession) {
       return;
     }
@@ -34,8 +38,8 @@ export function registerSessionPersistenceHandlers(): void {
     event.preventDefault();
     isFlushingSession = true;
 
-    void getPlaneSession()
-      .cookies.flushStore()
+    void planeSession.cookies
+      .flushStore()
       .catch((error) => {
         console.warn("[Plane Desktop] Failed to flush session cookies", error);
       })
