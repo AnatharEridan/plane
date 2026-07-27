@@ -1,6 +1,6 @@
 import path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
-import { registerApplicationMenu } from "./app-menu";
+import { registerApplicationMenu, handleBrowserAuth } from "./app-menu";
 import { desktopConfig } from "./config";
 import { getNotificationWatcherScript } from "./notification-watcher";
 import { getBrowserAuthButtonScript } from "./browser-auth-ui";
@@ -12,10 +12,20 @@ import {
 } from "./notifications";
 import { configureAppPaths, configurePlaneSession, registerSessionPersistenceHandlers } from "./session-manager";
 import { attachCertificatePolicy, attachNavigationSecurity, isAllowedNavigationUrl } from "./security";
-import { startBrowserAuth } from "./auth-broker";
+import { getDeepLinkFromArgv, handleAuthCallbackUrl } from "./auth-broker";
 
 configureAppPaths();
 registerSessionPersistenceHandlers();
+
+const DESKTOP_PROTOCOL = "plane";
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DESKTOP_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(DESKTOP_PROTOCOL);
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -24,19 +34,21 @@ const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
-    if (!mainWindow) {
-      return;
+  app.on("second-instance", (_event, commandLine) => {
+    const deepLink = commandLine.find((arg) => arg.startsWith(`${DESKTOP_PROTOCOL}://`));
+    if (deepLink) {
+      handleAuthCallbackUrl(deepLink);
     }
 
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore();
-    }
-
-    mainWindow.show();
-    mainWindow.focus();
+    focusMainWindow();
   });
 }
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  handleAuthCallbackUrl(url);
+  focusMainWindow();
+});
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -170,18 +182,15 @@ function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("desktop:start-browser-auth", async () => {
-    const result = await startBrowserAuth();
-
-    if (result.success && mainWindow) {
-      void mainWindow.loadURL(desktopConfig.serverUrl);
-    }
-
-    return result;
-  });
+  ipcMain.handle("desktop:start-browser-auth", async () => handleBrowserAuth(mainWindow));
 }
 
 void app.whenReady().then(() => {
+  const launchDeepLink = getDeepLinkFromArgv(process.argv);
+  if (launchDeepLink) {
+    handleAuthCallbackUrl(launchDeepLink);
+  }
+
   configureWindowsNotifications();
   configurePlaneSession();
   attachCertificatePolicy();

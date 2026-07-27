@@ -34,17 +34,21 @@ export function registerApplicationMenu(getMainWindow: () => BrowserWindow | nul
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-export async function handleBrowserAuth(mainWindow: BrowserWindow | null): Promise<void> {
+export async function handleBrowserAuth(
+  mainWindow: BrowserWindow | null
+): Promise<{ success: boolean; error?: string }> {
   const result = await startBrowserAuth();
 
   if (result.success && mainWindow) {
     void mainWindow.loadURL(desktopConfig.serverUrl);
     mainWindow.show();
     mainWindow.focus();
-    return;
+    return result;
   }
 
   if (mainWindow && result.error) {
     void mainWindow.webContents.executeJavaScript(`window.alert(${JSON.stringify(result.error)});`, true);
   }
+
+  return result;
 }

@@ -54,6 +54,7 @@ class DesktopAuthStartEndpoint(View):
         return HttpResponseRedirect(f"{web_base_url}/?next_path=/desktop-auth/complete")
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class DesktopAuthIssueCodeEndpoint(View):
     def post(self, request):
         if not request.user.is_authenticated:

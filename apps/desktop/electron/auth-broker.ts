@@ -1,9 +1,8 @@
-import http from "node:http";
 import { shell } from "electron";
 import { desktopConfig } from "./config";
 import { getPlaneSession } from "./session-manager";
 
-const AUTH_CALLBACK_PATH = "/callback";
+export const DESKTOP_AUTH_REDIRECT_URI = "plane://auth/callback";
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
 type BrowserAuthResult = {
@@ -11,72 +10,62 @@ type BrowserAuthResult = {
   error?: string;
 };
 
-async function findAvailablePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer();
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (!address || typeof address === "string") {
-        server.close();
-        reject(new Error("Could not resolve auth callback port."));
-        return;
-      }
+type PendingAuthHandlers = {
+  resolve: (code: string) => void;
+  reject: (error: Error) => void;
+  timeoutId: NodeJS.Timeout;
+};
 
-      const port = address.port;
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(port);
-      });
-    });
-  });
+let pendingAuth: PendingAuthHandlers | null = null;
+
+function clearPendingAuth(): void {
+  if (!pendingAuth) {
+    return;
+  }
+
+  clearTimeout(pendingAuth.timeoutId);
+  pendingAuth = null;
 }
 
-async function waitForAuthCode(port: number): Promise<string> {
+export function handleAuthCallbackUrl(url: string): boolean {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "plane:" || parsed.host !== "auth" || parsed.pathname !== "/callback") {
+    return false;
+  }
+
+  const code = parsed.searchParams.get("code");
+  if (!code) {
+    return false;
+  }
+
+  if (!pendingAuth) {
+    return true;
+  }
+
+  pendingAuth.resolve(code);
+  clearPendingAuth();
+  return true;
+}
+
+function waitForAuthCode(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const server = http.createServer((request, response) => {
-      if (!request.url?.startsWith(AUTH_CALLBACK_PATH)) {
-        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        response.end("Not found");
-        return;
+    clearPendingAuth();
+
+    const timeoutId = setTimeout(() => {
+      if (pendingAuth) {
+        pendingAuth = null;
+        reject(new Error("Desktop sign-in timed out."));
       }
-
-      const requestUrl = new URL(request.url, `http://127.0.0.1:${port}`);
-      const code = requestUrl.searchParams.get("code");
-
-      response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      response.end(`<!doctype html>
-<html lang="en">
-  <head><meta charset="UTF-8" /><title>Plane Desktop</title></head>
-  <body style="font-family:Segoe UI,sans-serif;text-align:center;padding:48px;">
-    <h1>Signed in</h1>
-    <p>You can close this tab and return to Plane Desktop.</p>
-  </body>
-</html>`);
-
-      server.close();
-
-      if (!code) {
-        reject(new Error("Desktop auth callback did not include a code."));
-        return;
-      }
-
-      resolve(code);
-    });
-
-    server.on("error", (error) => {
-      server.close();
-      reject(error);
-    });
-
-    server.listen(port, "127.0.0.1");
-
-    setTimeout(() => {
-      server.close();
-      reject(new Error("Desktop sign-in timed out."));
     }, AUTH_TIMEOUT_MS);
+
+    pendingAuth = { resolve, reject, timeoutId };
   });
 }
 
@@ -108,6 +97,7 @@ async function exchangeAuthCode(code: string, redirectUri: string): Promise<void
     url: desktopConfig.serverUrl,
     name: payload.session_cookie_name,
     value: payload.session_key,
+    domain: desktopConfig.serverHostname,
     path: "/",
     secure: true,
     httpOnly: true,
@@ -120,11 +110,10 @@ async function exchangeAuthCode(code: string, redirectUri: string): Promise<void
 
 export async function startBrowserAuth(): Promise<BrowserAuthResult> {
   try {
-    const port = await findAvailablePort();
-    const redirectUri = `http://127.0.0.1:${port}${AUTH_CALLBACK_PATH}`;
+    const redirectUri = DESKTOP_AUTH_REDIRECT_URI;
     const authUrl = `${desktopConfig.apiBaseUrl}/auth/desktop/start/?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-    const codePromise = waitForAuthCode(port);
+    const codePromise = waitForAuthCode();
     await shell.openExternal(authUrl);
 
     const code = await codePromise;
@@ -132,9 +121,15 @@ export async function startBrowserAuth(): Promise<BrowserAuthResult> {
 
     return { success: true };
   } catch (error) {
+    clearPendingAuth();
+
     return {
       success: false,
       error: error instanceof Error ? error.message : "Desktop browser sign-in failed.",
     };
   }
+}
+
+export function getDeepLinkFromArgv(argv: string[]): string | undefined {
+  return argv.find((arg) => arg.startsWith("plane://"));
 }

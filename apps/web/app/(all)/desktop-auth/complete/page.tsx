@@ -9,7 +9,6 @@ import { API_BASE_URL } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import DefaultLayout from "@/layouts/default-layout";
 
@@ -21,55 +20,55 @@ type TIssueCodeResponse = {
 };
 
 function openDesktopCallback(callbackUrl: string): void {
-  const link = document.createElement("a");
-  link.href = callbackUrl;
-  link.rel = "noopener noreferrer";
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  // Do not use <a href="plane://..."> or location.assign — that navigates this tab
+  // and Chrome shows an error page (often reported as HTTP 502).
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = callbackUrl;
+  document.body.appendChild(iframe);
+  window.setTimeout(() => iframe.remove(), 2000);
+}
+
+async function fetchAuthenticatedUserId(): Promise<string | null> {
+  const response = await fetch(`${API_BASE_URL}/api/users/me/`, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const user = (await response.json()) as { id?: string };
+  return user.id ?? null;
 }
 
 export default function DesktopAuthCompletePage() {
   const router = useAppRouter();
-  const { data: currentUser, isLoading: isUserLoading, fetchCurrentUser } = useUser();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [message, setMessage] = useState("Connecting your desktop app...");
+  const [message, setMessage] = useState("Preparing desktop sign-in...");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
-  const hasRequestedCode = useRef(false);
+  const hasStarted = useRef(false);
 
   const launchDesktop = useCallback((url: string) => {
     openDesktopCallback(url);
   }, []);
 
   useEffect(() => {
-    void fetchCurrentUser();
-  }, [fetchCurrentUser]);
-
-  useEffect(() => {
-    if (isUserLoading) {
+    if (hasStarted.current) {
       return;
     }
 
-    if (!currentUser?.id) {
-      router.replace("/?next_path=/desktop-auth/complete");
-      return;
-    }
-
-    if (hasRequestedCode.current) {
-      return;
-    }
-
-    hasRequestedCode.current = true;
+    hasStarted.current = true;
 
     const completeDesktopAuth = async () => {
       try {
-        const csrfResponse = await fetch(`${API_BASE_URL}/auth/get-csrf-token/`, {
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        });
-        const csrfData = (await csrfResponse.json()) as { csrf_token?: string };
-        const csrfToken = csrfData.csrf_token;
+        const userId = await fetchAuthenticatedUserId();
+
+        if (!userId) {
+          router.replace("/?next_path=/desktop-auth/complete");
+          return;
+        }
 
         const response = await fetch(`${API_BASE_URL}/auth/desktop/issue-code/`, {
           method: "POST",
@@ -77,11 +76,15 @@ export default function DesktopAuthCompletePage() {
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
-            ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
           },
         });
 
-        const data = (await response.json()) as TIssueCodeResponse;
+        let data: TIssueCodeResponse = {};
+        try {
+          data = (await response.json()) as TIssueCodeResponse;
+        } catch {
+          throw new Error("Invalid response from desktop sign-in endpoint.");
+        }
 
         if (!response.ok || !data.code || !data.redirect_uri) {
           setStatus("error");
@@ -95,19 +98,15 @@ export default function DesktopAuthCompletePage() {
         const nextCallbackUrl = `${data.redirect_uri}?code=${encodeURIComponent(data.code)}`;
         setCallbackUrl(nextCallbackUrl);
         setStatus("ready");
-        setMessage("Sign-in successful. Open Plane Desktop to finish.");
-
-        window.setTimeout(() => {
-          launchDesktop(nextCallbackUrl);
-        }, 400);
-      } catch {
+        setMessage("You're signed in. Click the button below to open Plane Desktop.");
+      } catch (error) {
         setStatus("error");
-        setMessage("Could not reach the Plane server.");
+        setMessage(error instanceof Error ? error.message : "Could not reach the Plane server.");
       }
     };
 
     void completeDesktopAuth();
-  }, [currentUser?.id, isUserLoading, launchDesktop, router]);
+  }, [router]);
 
   return (
     <DefaultLayout>
@@ -144,7 +143,7 @@ export default function DesktopAuthCompletePage() {
                 href="/"
                 className={cn(
                   getButtonStyling("primary", "base"),
-                  "mt-6 inline-flex items-center justify-center px-4 py-2"
+                  "mt-6 inline-flex items-center justify-center px-4 py-2 no-underline"
                 )}
               >
                 Back to sign in

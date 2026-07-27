@@ -1,7 +1,26 @@
 import { describe, expect, it } from "vitest";
+import { DESKTOP_AUTH_REDIRECT_URI, getDeepLinkFromArgv, handleAuthCallbackUrl } from "../electron/auth-broker";
 import { desktopConfig } from "../electron/config";
 import { getNotificationWatcherScript } from "../electron/notification-watcher";
 import { isAllowedNavigationUrl } from "../electron/security";
+
+describe("desktop auth protocol", () => {
+  it("uses plane:// callback redirect URI", () => {
+    expect(DESKTOP_AUTH_REDIRECT_URI).toBe("plane://auth/callback");
+  });
+
+  it("parses auth callback deep links from argv", () => {
+    expect(getDeepLinkFromArgv(["Plane.exe", "plane://auth/callback?code=abc"])).toBe("plane://auth/callback?code=abc");
+  });
+
+  it("accepts plane:// callback URLs", () => {
+    expect(handleAuthCallbackUrl("plane://auth/callback?code=test-code")).toBe(true);
+  });
+
+  it("rejects unrelated deep links", () => {
+    expect(handleAuthCallbackUrl("plane://other/path?code=test-code")).toBe(false);
+  });
+});
 
 describe("desktopConfig", () => {
   it("uses the hardcoded production server", () => {
