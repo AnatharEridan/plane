@@ -65,7 +65,7 @@ function DesktopAuthCompletePage() {
         }
 
         setStatus("redirecting");
-        setMessage("Returning to Plane desktop...");
+        setMessage("Opening Plane Desktop… If your browser asks, choose Open or Allow.");
         window.location.href = `${data.redirect_uri}?code=${encodeURIComponent(data.code)}`;
       } catch {
         setStatus("error");

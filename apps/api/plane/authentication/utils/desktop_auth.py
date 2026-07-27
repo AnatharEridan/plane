@@ -12,6 +12,13 @@ DESKTOP_AUTH_CODE_TTL_SECONDS = 300
 DESKTOP_AUTH_SESSION_KEY = "desktop_auth_redirect_uri"
 DESKTOP_AUTH_CODE_PREFIX = "desktop_auth_code:"
 
+_PLANE_PROTOCOL_CALLBACKS = frozenset(
+    {
+        "plane://auth/callback",
+        "plane://auth/callback/",
+    }
+)
+
 _LOOPBACK_CALLBACK_PATTERN = re.compile(
     r"^https?://(127\.0\.0\.1|localhost):\d{1,5}/callback/?$",
     re.IGNORECASE,
@@ -24,6 +31,9 @@ def is_valid_desktop_redirect_uri(redirect_uri: str) -> bool:
 
     if len(redirect_uri) > 500:
         return False
+
+    if redirect_uri in _PLANE_PROTOCOL_CALLBACKS:
+        return True
 
     if not _LOOPBACK_CALLBACK_PATTERN.match(redirect_uri):
         return False
