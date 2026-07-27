@@ -17,6 +17,23 @@ type PendingAuthHandlers = {
 };
 
 let pendingAuth: PendingAuthHandlers | null = null;
+let queuedAuthCode: string | null = null;
+
+function parseAuthCallbackCode(url: string): string | null {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "plane:" || parsed.host !== "auth" || parsed.pathname !== "/callback") {
+    return null;
+  }
+
+  return parsed.searchParams.get("code");
+}
 
 function clearPendingAuth(): void {
   if (!pendingAuth) {
@@ -28,33 +45,54 @@ function clearPendingAuth(): void {
 }
 
 export function handleAuthCallbackUrl(url: string): boolean {
-  let parsed: URL;
-
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-
-  if (parsed.protocol !== "plane:" || parsed.host !== "auth" || parsed.pathname !== "/callback") {
-    return false;
-  }
-
-  const code = parsed.searchParams.get("code");
+  const code = parseAuthCallbackCode(url);
   if (!code) {
     return false;
   }
 
-  if (!pendingAuth) {
+  if (pendingAuth) {
+    pendingAuth.resolve(code);
+    clearPendingAuth();
     return true;
   }
 
-  pendingAuth.resolve(code);
-  clearPendingAuth();
+  queuedAuthCode = code;
   return true;
 }
 
+async function completeAuthWithCode(code: string): Promise<void> {
+  await exchangeAuthCode(code, DESKTOP_AUTH_REDIRECT_URI);
+}
+
+export async function completeAuthFromDeepLink(url: string, onSuccess?: () => void): Promise<boolean> {
+  const code = parseAuthCallbackCode(url);
+  if (!code) {
+    return false;
+  }
+
+  if (pendingAuth) {
+    pendingAuth.resolve(code);
+    clearPendingAuth();
+    return true;
+  }
+
+  try {
+    await completeAuthWithCode(code);
+    onSuccess?.();
+    return true;
+  } catch (error) {
+    console.warn("[Plane Desktop] Failed to complete auth from deep link", error);
+    return false;
+  }
+}
+
 function waitForAuthCode(): Promise<string> {
+  if (queuedAuthCode) {
+    const code = queuedAuthCode;
+    queuedAuthCode = null;
+    return Promise.resolve(code);
+  }
+
   return new Promise((resolve, reject) => {
     clearPendingAuth();
 
@@ -117,7 +155,7 @@ export async function startBrowserAuth(): Promise<BrowserAuthResult> {
     await shell.openExternal(authUrl);
 
     const code = await codePromise;
-    await exchangeAuthCode(code, redirectUri);
+    await completeAuthWithCode(code);
 
     return { success: true };
   } catch (error) {

@@ -114,14 +114,6 @@ export default function DesktopAuthCompletePage() {
               <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
                 <a
                   href={callbackUrl}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    const iframe = document.createElement("iframe");
-                    iframe.style.display = "none";
-                    iframe.src = callbackUrl;
-                    document.body.appendChild(iframe);
-                    window.setTimeout(() => iframe.remove(), 2000);
-                  }}
                   className={cn(
                     getButtonStyling("primary", "base"),
                     "inline-flex w-full items-center justify-center no-underline"

@@ -12,7 +12,7 @@ import {
 } from "./notifications";
 import { configureAppPaths, configurePlaneSession, registerSessionPersistenceHandlers } from "./session-manager";
 import { attachCertificatePolicy, attachNavigationSecurity, isAllowedNavigationUrl } from "./security";
-import { getDeepLinkFromArgv, handleAuthCallbackUrl } from "./auth-broker";
+import { getDeepLinkFromArgv, completeAuthFromDeepLink } from "./auth-broker";
 
 configureAppPaths();
 registerSessionPersistenceHandlers();
@@ -37,7 +37,11 @@ if (!gotSingleInstanceLock) {
   app.on("second-instance", (_event, commandLine) => {
     const deepLink = commandLine.find((arg) => arg.startsWith(`${DESKTOP_PROTOCOL}://`));
     if (deepLink) {
-      handleAuthCallbackUrl(deepLink);
+      void completeAuthFromDeepLink(deepLink, () => {
+        if (mainWindow) {
+          void mainWindow.loadURL(desktopConfig.serverUrl);
+        }
+      });
     }
 
     focusMainWindow();
@@ -46,7 +50,11 @@ if (!gotSingleInstanceLock) {
 
 app.on("open-url", (event, url) => {
   event.preventDefault();
-  handleAuthCallbackUrl(url);
+  void completeAuthFromDeepLink(url, () => {
+    if (mainWindow) {
+      void mainWindow.loadURL(desktopConfig.serverUrl);
+    }
+  });
   focusMainWindow();
 });
 
@@ -186,9 +194,17 @@ function registerIpcHandlers(): void {
 }
 
 void app.whenReady().then(() => {
+  const reloadAfterAuth = (): void => {
+    if (mainWindow) {
+      void mainWindow.loadURL(desktopConfig.serverUrl);
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  };
+
   const launchDeepLink = getDeepLinkFromArgv(process.argv);
   if (launchDeepLink) {
-    handleAuthCallbackUrl(launchDeepLink);
+    void completeAuthFromDeepLink(launchDeepLink, reloadAfterAuth);
   }
 
   configureWindowsNotifications();
