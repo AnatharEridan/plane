@@ -3,7 +3,6 @@
 # See the LICENSE file for details.
 
 import json
-from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -44,13 +43,12 @@ class DesktopAuthStartEndpoint(View):
         store_desktop_redirect_uri(request, redirect_uri)
 
         web_base_url = _get_web_base_url()
-        complete_path = f"/desktop-auth/complete?redirect_uri={quote(redirect_uri, safe='')}"
-        complete_url = f"{web_base_url}{complete_path}"
+        complete_url = f"{web_base_url}/desktop-auth/complete"
 
         if request.user.is_authenticated:
             return HttpResponseRedirect(complete_url)
 
-        return HttpResponseRedirect(f"{web_base_url}/?next_path={quote(complete_path, safe='')}")
+        return HttpResponseRedirect(f"{web_base_url}/?next_path=/desktop-auth/complete")
 
 
 @method_decorator(csrf_exempt, name="dispatch")

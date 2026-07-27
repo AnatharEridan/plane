@@ -5,13 +5,14 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { API_BASE_URL } from "@plane/constants";
 import { getButtonStyling } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { useAppRouter } from "@/hooks/use-app-router";
 import DefaultLayout from "@/layouts/default-layout";
+
+const DESKTOP_AUTH_REDIRECT_URI = "plane://auth/callback";
 
 type TIssueCodeResponse = {
   code?: string;
@@ -36,8 +37,6 @@ async function fetchAuthenticatedUserId(): Promise<string | null> {
 
 export default function DesktopAuthCompletePage() {
   const router = useAppRouter();
-  const searchParams = useSearchParams();
-  const redirectUriFromQuery = searchParams.get("redirect_uri");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("Preparing desktop sign-in...");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
@@ -55,10 +54,7 @@ export default function DesktopAuthCompletePage() {
         const userId = await fetchAuthenticatedUserId();
 
         if (!userId) {
-          const nextPath = redirectUriFromQuery
-            ? `/desktop-auth/complete?redirect_uri=${encodeURIComponent(redirectUriFromQuery)}`
-            : "/desktop-auth/complete";
-          router.replace(`/?next_path=${encodeURIComponent(nextPath)}`);
+          router.replace("/?next_path=/desktop-auth/complete");
           return;
         }
 
@@ -69,7 +65,7 @@ export default function DesktopAuthCompletePage() {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(redirectUriFromQuery ? { redirect_uri: redirectUriFromQuery } : {}),
+          body: JSON.stringify({ redirect_uri: DESKTOP_AUTH_REDIRECT_URI }),
         });
 
         let data: TIssueCodeResponse = {};
@@ -99,7 +95,7 @@ export default function DesktopAuthCompletePage() {
     };
 
     void completeDesktopAuth();
-  }, [redirectUriFromQuery, router]);
+  }, [router]);
 
   return (
     <DefaultLayout>
