@@ -10,7 +10,7 @@ import { useSearchParams } from "next/navigation";
 // plane imports
 import { OAuthOptions } from "@plane/ui";
 // ce imports
-import { DesktopBrowserAuthButton } from "@/ce/components/desktop";
+import { DesktopBrowserAuthButton } from "@/plane-web/components/desktop";
 // helpers
 import type { TAuthErrorInfo } from "@/helpers/authentication.helper";
 import {
