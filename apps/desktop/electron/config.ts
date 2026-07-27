@@ -11,6 +11,6 @@ export const desktopConfig = {
   allowInsecureCert: false,
   allowedHosts: [serverUrl.hostname],
   pollIntervalMs: 15_000,
-  appUserModelId: "so.plane.desktop",
+  appUserModelId: "DevilGate.Plane.Desktop",
   userAgentSuffix: "PlaneDesktop/0.1.0",
 };

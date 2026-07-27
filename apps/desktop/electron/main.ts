@@ -6,6 +6,7 @@ import { getNotificationWatcherScript } from "./notification-watcher";
 import { getBrowserAuthButtonScript } from "./browser-auth-ui";
 import {
   configureWindowsNotifications,
+  initializeWindowsNotifications,
   showDesktopNotification,
   updateTaskbarBadge,
   type DesktopNotificationPayload,
@@ -16,6 +17,7 @@ import { getDeepLinkFromArgv, completeAuthFromDeepLink } from "./auth-broker";
 
 configureAppPaths();
 registerSessionPersistenceHandlers();
+configureWindowsNotifications();
 
 const DESKTOP_PROTOCOL = "plane";
 
@@ -181,7 +183,7 @@ function registerIpcHandlers(): void {
 }
 
 void app.whenReady().then(() => {
-  configureWindowsNotifications();
+  initializeWindowsNotifications();
   configurePlaneSession();
   attachCertificatePolicy();
   registerIpcHandlers();
