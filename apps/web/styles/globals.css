@@ -161,6 +161,36 @@
   animation: fadeOut 500ms ease-in 100ms forwards;
 }
 
+/*
+ * Plane Desktop uses the workspace navigation as its Windows title bar.
+ * Interactive controls stay clickable while the empty parts remain draggable.
+ */
+html.plane-desktop .desktop-window-titlebar {
+  height: 40px;
+  min-height: 40px;
+  padding-right: 148px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+html.plane-desktop .desktop-window-titlebar a,
+html.plane-desktop .desktop-window-titlebar button,
+html.plane-desktop .desktop-window-titlebar input,
+html.plane-desktop .desktop-window-titlebar [role="button"] {
+  -webkit-app-region: no-drag;
+}
+
+html.plane-desktop body::before {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  right: 148px;
+  left: 0;
+  height: 6px;
+  content: "";
+  -webkit-app-region: drag;
+}
+
 @keyframes highlight {
   0% {
     background-color: var(--background-color-layer-2);

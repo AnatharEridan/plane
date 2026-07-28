@@ -6,7 +6,9 @@
 
 // components
 import { observer } from "mobx-react";
+import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { useTranslation } from "@plane/i18n";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
@@ -15,16 +17,17 @@ import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { Tooltip } from "@plane/propel/tooltip";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
-import { InboxIcon } from "@plane/propel/icons";
+import { ChevronLeftIcon, InboxIcon } from "@plane/propel/icons";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
-import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
+import { DownloadDesktopAppLink } from "@/app/(all)/[workspaceSlug]/(projects)/download-app-link";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
@@ -43,16 +46,34 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
   const totalNotifications = isMentionsEnabled
     ? unreadNotificationsCount.mention_unread_notifications_count
     : unreadNotificationsCount.total_unread_notifications_count;
+  const isNotificationsPath =
+    Boolean(workspaceSlug) && Boolean(pathname?.includes(`/${workspaceSlug.toString()}/notifications`));
 
   return (
     <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
-        "px-2": !showLabel,
-      })}
+      className={cn(
+        "desktop-window-titlebar z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300",
+        {
+          "px-2": !showLabel,
+        }
+      )}
     >
       {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
-        <WorkspaceMenuRoot variant="top-navigation" />
+      <div className="flex flex-1 shrink-0 items-center gap-1">
+        {isNotificationsPath && workspaceSlug && (
+          <Tooltip tooltipContent={t("back_to_home")} position="bottom">
+            <Link
+              href={`/${workspaceSlug.toString()}/`}
+              aria-label={t("back_to_home")}
+              className="flex size-8 shrink-0 items-center justify-center rounded-md text-tertiary hover:bg-layer-transparent-hover hover:text-secondary"
+            >
+              <ChevronLeftIcon className="size-4" />
+            </Link>
+          </Tooltip>
+        )}
+        <div className="min-w-0 flex-1">
+          <WorkspaceMenuRoot variant="top-navigation" />
+        </div>
       </div>
       {/* Power K Search */}
       <div className="shrink-0">
@@ -73,12 +94,12 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
                   )}
                 </div>
               ),
-              isActive: pathname?.includes("/notifications/"),
+              isActive: isNotificationsPath,
             }}
           />
         </Tooltip>
         <HelpMenuRoot />
-        <StarUsOnGitHubLink />
+        <DownloadDesktopAppLink />
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />
         </div>

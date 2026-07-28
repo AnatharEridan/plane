@@ -467,6 +467,11 @@ export default {
     manage_widgets: "Manage widgets",
     title: "Home",
     star_us_on_github: "Star us on GitHub",
+    desktop_app: {
+      download: "Download app",
+      resolving: "Finding latest version...",
+      download_error: "Could not find the latest Windows installer. Please try again.",
+    },
   },
   link: {
     modal: {

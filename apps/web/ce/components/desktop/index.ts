@@ -6,4 +6,5 @@
 
 export * from "./auth-browser-button";
 export * from "./helper";
+export * from "./latest-release";
 export * from "./sidebar-workspace-menu";

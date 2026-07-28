@@ -642,6 +642,11 @@ export default {
     manage_widgets: "Управление виджетами",
     title: "Главная",
     star_us_on_github: "Оцените нас на GitHub",
+    desktop_app: {
+      download: "Скачать приложение",
+      resolving: "Ищем последнюю версию...",
+      download_error: "Не удалось найти последнюю версию для Windows. Попробуйте ещё раз.",
+    },
   },
   link: {
     modal: {
