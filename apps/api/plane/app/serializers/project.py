@@ -25,6 +25,7 @@ from plane.db.models import (
 from plane.utils.content_validator import (
     validate_html_content,
 )
+from plane.utils.bug_tracking import normalize_bug_found_locations
 
 
 class ProjectSerializer(BaseSerializer):
@@ -73,6 +74,12 @@ class ProjectSerializer(BaseSerializer):
             )
 
         return identifier
+
+    def validate_bug_found_locations(self, value):
+        try:
+            return normalize_bug_found_locations(value)
+        except ValueError as error:
+            raise serializers.ValidationError(str(error)) from error
 
     def validate(self, data):
         # Validate description content for security

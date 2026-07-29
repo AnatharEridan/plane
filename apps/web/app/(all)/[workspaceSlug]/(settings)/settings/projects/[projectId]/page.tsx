@@ -11,6 +11,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { PageHead } from "@/components/core/page-title";
 import { ProjectDetailsForm } from "@/components/project/form";
 import { ProjectDetailsFormLoader } from "@/components/project/form-loader";
+import { BugFoundLocationsSettings } from "@/components/project/bug-found-locations-settings";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
@@ -36,12 +37,19 @@ function ProjectSettingsPage({ params }: Route.ComponentProps) {
       <PageHead title={pageTitle} />
       <div className={`w-full ${isAdmin ? "" : "opacity-60"}`}>
         {currentProjectDetails ? (
-          <ProjectDetailsForm
-            project={currentProjectDetails}
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            isAdmin={isAdmin}
-          />
+          <>
+            <ProjectDetailsForm
+              project={currentProjectDetails}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              isAdmin={isAdmin}
+            />
+            <BugFoundLocationsSettings
+              project={currentProjectDetails}
+              workspaceSlug={workspaceSlug}
+              isAdmin={isAdmin}
+            />
+          </>
         ) : (
           <ProjectDetailsFormLoader />
         )}

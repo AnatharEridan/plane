@@ -55,6 +55,8 @@ class DraftIssue(WorkspaceBaseModel):
     )
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
+    bug_found_location = models.CharField(max_length=255, blank=True, default="")
+    affected_version = models.CharField(max_length=255, blank=True, default="")
     assignees = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,

@@ -145,6 +145,8 @@ class Issue(ProjectBaseModel):
     )
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
+    bug_found_location = models.CharField(max_length=255, blank=True, default="")
+    affected_version = models.CharField(max_length=255, blank=True, default="")
     assignees = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,
@@ -687,6 +689,8 @@ class IssueVersion(ProjectBaseModel):
     )
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
+    bug_found_location = models.CharField(max_length=255, blank=True, default="")
+    affected_version = models.CharField(max_length=255, blank=True, default="")
     assignees = ArrayField(models.UUIDField(), blank=True, default=list)
     sequence_id = models.IntegerField(default=1, verbose_name="Issue Sequence ID")
     labels = ArrayField(models.UUIDField(), blank=True, default=list)
@@ -748,6 +752,8 @@ class IssueVersion(ProjectBaseModel):
                 priority=issue.priority,
                 start_date=issue.start_date,
                 target_date=issue.target_date,
+                bug_found_location=issue.bug_found_location,
+                affected_version=issue.affected_version,
                 assignees=list(IssueAssignee.objects.filter(issue=issue).values_list("assignee_id", flat=True)),
                 sequence_id=issue.sequence_id,
                 labels=list(IssueLabel.objects.filter(issue=issue).values_list("label_id", flat=True)),

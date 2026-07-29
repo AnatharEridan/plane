@@ -43,6 +43,7 @@ import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sid
 import { IssueWorklogProperty } from "@/plane-web/components/issues/worklog/property";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
+import { BugTrackingIssueProperties } from "../issue-detail/bug-tracking-properties";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
 
@@ -126,6 +127,12 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             buttonClassName={`text-body-xs-medium whitespace-nowrap [&_svg]:size-3.5 ${!issue?.priority || issue?.priority === "none" ? "text-placeholder" : ""}`}
           />
         </SidebarPropertyListItem>
+
+        <BugTrackingIssueProperties
+          issue={issue}
+          disabled={disabled}
+          onUpdate={(data) => issueOperations.update(workspaceSlug, projectId, issueId, data)}
+        />
 
         {createdByDetails && (
           <SidebarPropertyListItem

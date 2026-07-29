@@ -163,6 +163,8 @@ export class IssueStore implements IIssueStore {
       updated_at: issue?.updated_at,
       start_date: issue?.start_date,
       target_date: issue?.target_date,
+      bug_found_location: issue?.bug_found_location,
+      affected_version: issue?.affected_version,
       completed_at: issue?.completed_at,
       archived_at: issue?.archived_at,
       created_by: issue?.created_by,

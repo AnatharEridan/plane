@@ -26,6 +26,7 @@ from plane.db.models import (
     State,
     User,
     EstimatePoint,
+    Project,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -71,6 +72,17 @@ class IssueSerializer(BaseSerializer):
         model = Issue
         read_only_fields = ["id", "workspace", "project", "updated_by", "updated_at"]
         exclude = ["description_json", "description_stripped"]
+
+    def validate_bug_found_location(self, value):
+        normalized_value = value.strip()
+        if not normalized_value:
+            return ""
+
+        project = Project.objects.only("bug_found_locations").filter(id=self.context.get("project_id")).first()
+        if project is None or normalized_value not in project.bug_found_locations:
+            raise serializers.ValidationError("Select a bug found location configured for this project.")
+
+        return normalized_value
 
     def validate(self, data):
         if (

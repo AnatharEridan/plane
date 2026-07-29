@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
+import { Tag } from "lucide-react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import { ETabIndices, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -14,10 +15,11 @@ import { ParentPropertyIcon } from "@plane/propel/icons";
 // types
 import type { ISearchIssueResponse, TIssue } from "@plane/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu, Input } from "@plane/ui";
 import { getDate, renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
 // components
 import { CycleDropdown } from "@/components/dropdowns/cycle";
+import { BugFoundLocationDropdown } from "@/components/dropdowns/bug-found-location";
 import { DateDropdown } from "@/components/dropdowns/date";
 import { EstimateDropdown } from "@/components/dropdowns/estimate";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
@@ -123,6 +125,45 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
           </div>
         )}
       />
+      {projectId && (
+        <>
+          <Controller
+            control={control}
+            name="bug_found_location"
+            render={({ field: { value, onChange } }) => (
+              <BugFoundLocationDropdown
+                projectId={projectId}
+                value={value}
+                onChange={(bugFoundLocation) => {
+                  onChange(bugFoundLocation);
+                  handleFormChange();
+                }}
+                variant="modal"
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="affected_version"
+            render={({ field: { value, onChange } }) => (
+              <div className="relative h-7">
+                <Tag className="pointer-events-none absolute top-1/2 left-2 z-1 size-3.5 -translate-y-1/2" />
+                <Input
+                  value={value}
+                  onChange={(event) => {
+                    onChange(event.target.value);
+                    handleFormChange();
+                  }}
+                  maxLength={255}
+                  inputSize="xs"
+                  className="h-full w-36 border-[0.5px] border-strong pl-7 text-caption-sm-regular"
+                  placeholder={t("bug_tracking.version.placeholder")}
+                />
+              </div>
+            )}
+          />
+        </>
+      )}
       <Controller
         control={control}
         name="assignee_ids"

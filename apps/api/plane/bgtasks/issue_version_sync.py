@@ -159,6 +159,8 @@ def create_issue_version(issue: Issue, related_data: Dict) -> Optional[IssueVers
             priority=issue.priority,
             start_date=issue.start_date,
             target_date=issue.target_date,
+            bug_found_location=issue.bug_found_location,
+            affected_version=issue.affected_version,
             assignees=related_data["assignees"].get(issue.id, []),
             sequence_id=issue.sequence_id,
             labels=related_data["labels"].get(issue.id, []),

@@ -43,6 +43,7 @@ import { DateAlert } from "@/plane-web/components/issues/issue-details/sidebar/d
 import { TransferHopInfo } from "@/plane-web/components/issues/issue-details/sidebar/transfer-hop-info";
 import { IssueWorklogProperty } from "@/plane-web/components/issues/worklog/property";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
+import { BugTrackingIssueProperties } from "./bug-tracking-properties";
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
@@ -132,6 +133,13 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 buttonClassName="size-full px-2 py-0.5 whitespace-nowrap [&_svg]:size-3.5"
               />
             </SidebarPropertyListItem>
+
+            <BugTrackingIssueProperties
+              issue={issue}
+              disabled={!isEditable}
+              textClassName="text-body-xs-regular"
+              onUpdate={(data) => issueOperations.update(workspaceSlug, projectId, issueId, data)}
+            />
 
             {createdByDetails && (
               <SidebarPropertyListItem icon={UserCirclePropertyIcon} label={t("common.created_by")}>

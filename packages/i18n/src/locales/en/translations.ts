@@ -1686,6 +1686,36 @@ export default {
       },
     },
   },
+  bug_tracking: {
+    location: {
+      label: "Where found",
+      placeholder: "Where was the bug found?",
+      no_options: "Configure options in project settings.",
+    },
+    version: {
+      label: "Version",
+      placeholder: "Enter version",
+    },
+    settings: {
+      title: "Bug tracking",
+      description: "Configure the task properties your team uses to report bugs.",
+      locations: {
+        title: "Bug found locations",
+        description: "These options appear in the “Where found” dropdown on every task.",
+        add: "Add option",
+        empty: "No locations configured yet.",
+        placeholder: "For example: Web, iOS, Android",
+      },
+      validation: {
+        empty: "Location names cannot be empty.",
+        duplicate: "Location names must be unique.",
+      },
+      toast: {
+        success: "Bug tracking settings updated.",
+        error: "Bug tracking settings could not be updated. Please try again.",
+      },
+    },
+  },
   project_settings: {
     general: {
       enter_project_id: "Enter project ID",

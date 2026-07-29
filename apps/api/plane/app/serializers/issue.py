@@ -42,6 +42,7 @@ from plane.db.models import (
     IssueDescriptionVersion,
     ProjectMember,
     EstimatePoint,
+    Project,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -119,6 +120,17 @@ class IssueCreateSerializer(BaseSerializer):
         label_ids = self.initial_data.get("label_ids")
         data["label_ids"] = label_ids if label_ids else []
         return data
+
+    def validate_bug_found_location(self, value):
+        normalized_value = value.strip()
+        if not normalized_value:
+            return ""
+
+        project = Project.objects.only("bug_found_locations").filter(id=self.context.get("project_id")).first()
+        if project is None or normalized_value not in project.bug_found_locations:
+            raise serializers.ValidationError("Select a bug found location configured for this project.")
+
+        return normalized_value
 
     def validate(self, attrs):
         allow_triage = self.context.get("allow_triage_state", False)
@@ -783,6 +795,8 @@ class IssueSerializer(DynamicBaseSerializer):
             "priority",
             "start_date",
             "target_date",
+            "bug_found_location",
+            "affected_version",
             "sequence_id",
             "project_id",
             "parent_id",
@@ -840,6 +854,8 @@ class IssueListDetailSerializer(serializers.Serializer):
             "priority": instance.priority,
             "start_date": instance.start_date,
             "target_date": instance.target_date,
+            "bug_found_location": instance.bug_found_location,
+            "affected_version": instance.affected_version,
             "sequence_id": instance.sequence_id,
             "project_id": instance.project_id,
             "parent_id": instance.parent_id,
@@ -983,6 +999,8 @@ class IssueVersionDetailSerializer(BaseSerializer):
             "priority",
             "start_date",
             "target_date",
+            "bug_found_location",
+            "affected_version",
             "assignees",
             "sequence_id",
             "labels",

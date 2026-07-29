@@ -16,6 +16,7 @@ from plane.db.models import Project, ProjectIdentifier, WorkspaceMember, State, 
 from plane.utils.content_validator import (
     validate_html_content,
 )
+from plane.utils.bug_tracking import normalize_bug_found_locations
 from .base import BaseSerializer
 
 
@@ -85,6 +86,7 @@ class ProjectCreateSerializer(BaseSerializer):
             "page_view",
             "intake_view",
             "guest_view_all_features",
+            "bug_found_locations",
             "archive_in",
             "close_in",
             "timezone",
@@ -131,6 +133,12 @@ class ProjectCreateSerializer(BaseSerializer):
                 raise serializers.ValidationError("Default assignee should be a user in the workspace")
 
         return data
+
+    def validate_bug_found_locations(self, value):
+        try:
+            return normalize_bug_found_locations(value)
+        except ValueError as error:
+            raise serializers.ValidationError(str(error)) from error
 
     def create(self, validated_data):
         identifier = validated_data.get("identifier", "").strip().upper()
@@ -230,6 +238,12 @@ class ProjectSerializer(BaseSerializer):
             "deleted_at",
             "cover_image_url",
         ]
+
+    def validate_bug_found_locations(self, value):
+        try:
+            return normalize_bug_found_locations(value)
+        except ValueError as error:
+            raise serializers.ValidationError(str(error)) from error
 
     def validate(self, data):
         project_name = data.get("name", None)

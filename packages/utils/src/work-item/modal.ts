@@ -17,6 +17,8 @@ export const getUpdateFormDataForReset = (projectId: string | null | undefined, 
   priority: formData.priority,
   start_date: formData.start_date,
   target_date: formData.target_date,
+  bug_found_location: "",
+  affected_version: "",
 });
 
 export const convertWorkItemDataToSearchResponse = (
